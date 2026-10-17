@@ -1,0 +1,17 @@
+{
+  "hostname": "app.example.com",
+  "origin": "https://app.example.com",
+  "development_host": "your-development-host",
+  "account_id": "YOUR_CLOUDFLARE_ACCOUNT_ID",
+  "zone_id": "YOUR_CLOUDFLARE_ZONE_ID",
+  "tunnel_id": "YOUR_TUNNEL_ID",
+  "tunnel_name": "BuyersWorkBench",
+  "access_app_id": "YOUR_ACCESS_APPLICATION_ID",
+  "access_audience": "YOUR_ACCESS_APPLICATION_AUDIENCE",
+  "access_team": "YOUR_ACCESS_TEAM",
+  "access_email": "owner@example.com",
+  "access_owner_policy_id": "YOUR_OWNER_POLICY_ID",
+  "dns_record_id": "YOUR_DNS_RECORD_ID",
+  "origin_service": "http://public-web:8080",
+  "scope": "Owner-only preview; no live supplier collection"
+}

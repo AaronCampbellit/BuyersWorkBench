@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "origin": "fictional",
+  "comparison_id": "DEMO-QUOTE-001",
+  "description": "Fictional 100-unit purchasing comparison; not actual supplier offers.",
+  "quantity": "100",
+  "uom": "EA",
+  "currency": "USD",
+  "required_arrival_date": "2026-10-25",
+  "excluded_costs": [
+    "tax",
+    "duties",
+    "financing"
+  ],
+  "quotes": [
+    {
+      "supplier": "Fictional Atlas",
+      "unit_price": "9.80",
+      "freight": "350.00",
+      "other_charges": "0.00",
+      "approval": "approved",
+      "arrival_date": "2026-10-23",
+      "expected_modeled_total": "1330.00",
+      "expected_eligible": true
+    },
+    {
+      "supplier": "Fictional Meridian",
+      "unit_price": "10.50",
+      "freight": "75.00",
+      "other_charges": "0.00",
+      "approval": "approved",
+      "arrival_date": "2026-10-24",
+      "expected_modeled_total": "1125.00",
+      "expected_eligible": true
+    },
+    {
+      "supplier": "Fictional Harbor",
+      "unit_price": "9.40",
+      "freight": "50.00",
+      "other_charges": "0.00",
+      "approval": "pending",
+      "arrival_date": "2026-10-28",
+      "expected_modeled_total": "990.00",
+      "expected_eligible": false
+    }
+  ],
+  "expected_winner": "Fictional Meridian",
+  "expected_savings_vs_atlas": "205.00"
+}

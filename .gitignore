@@ -1,0 +1,28 @@
+# Local credentials, databases, build products and diagnostics
+.local/
+.env
+.env.*
+!.env.example
+bin/
+node_modules/
+dist/
+coverage/
+*.log
+*.test
+.playwright-cli/
+playwright-report/
+test-results/
+*.har
+*.pem
+*.key
+auth-state*.json
+storage-state*.json
+.DS_Store
+__pycache__/
+*.pyc
+
+# Preserved local planning inputs and actual hosting configuration
+docs/planning/
+sources/
+deploy/cloudflare.json
+*.bwb

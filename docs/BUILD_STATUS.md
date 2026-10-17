@@ -1,0 +1,320 @@
+# BuyersWorkBench build and verification
+
+Updated October 17, 2026. The supplier-independent expansion is deployed to the existing owner-only preview with twelve application migrations. Lenovo order collection remains deferred. No live supplier credentials, browser sessions, supplier access or external notifications were introduced. Historical sections below describe their own earlier verification checkpoints; this release section supersedes their deployment status.
+
+## October 17 release deployment and public source
+
+The release uses the existing development host, database, HTTPS hostname, tunnel and owner-only Access policy. API and worker processes were stopped for the one-off administrative migration from eight to twelve, then restarted with matching images. No unrelated workload, host firewall, network policy or Cloudflare resource was changed.
+
+| Executed check | Result |
+|---|---|
+| Release images | Backend and production frontend images built successfully from the expanded source. The running static release contains `index-DlM6JjyN.css` and `index-DvBZoKPm.js`. Build log: `/tmp/bwb-publication-image-build.log`. |
+| Migration and preservation | Migrations 0009–0012 applied once. Before/after counts and SHA-256 fingerprints matched for existing users, identities, workspaces, supplier profiles, source order facts, buyer notes and conditions. Preserved one owner, two workspaces, three profiles, four source lines, one note and two conditions. No live reset, seed or collection scenario was used. Log: `/tmp/bwb-publication-deploy.log`. |
+| Runtime readiness | Both API variants, PostgreSQL and the static gateway passed container health checks; worker migration/queue readiness passed. The local frontend and tunnel connector remain running. |
+| Deployed browser and API | Cached Playwright/Chromium verified the actual running production gateway at1440×1000 and390×844: priorities, Orders connection labels/evidence, connection Add/Cancel, notification preferences and empty private workspace. The browser reached the private container origin with the configured HTTPS Host/Origin preserved; no Access policy or network exposure was added. Readiness and authenticated session/workspace/overview/member/preference reads returned200; guest session401, source/missing assets404 and wrong host421 passed. No unexpected console/runtime errors, overlay or document overflow; ten screenshots were inspected. A bounded verification session logged out204, then401, and was deleted; existing identity/source/workflow fingerprints still matched. Actual external HTTPS returned302 to Cloudflare Access without an OTP request. Report: `/tmp/bwb-release-origin-smoke-report.json`. |
+| Encrypted recovery | Actual encrypted pre-upgrade and post-upgrade backups restored successfully in separate disposable network-none/tmpfs containers. Both checks validated constraints, revoked copied sessions, constrained runtime role and own-row/foreign-row RLS behavior. The final backup restored twelve migrations, one user and two workspaces; its encrypted envelope is 162,779 bytes. The encrypted pre-upgrade snapshot was separately retained outside daily rotation. Source data and keys were preserved; restore containers were removed. Logs: `/tmp/bwb-publication-pre-restore.json`, `/tmp/bwb-publication-post-restore.json`. |
+| Public packaging | A detailed learning-project README, generic deployment example and self-contained implementation docs are included. Actual hosting identifiers, local credentials, private files and the original reference archive are excluded. The original ZIP and imported files remain intact locally. See [decision 0010](decisions/0010-public-source.md). |
+| Standalone public-source checks | Exported the Git index into a private temporary directory containing no local credentials, deployment manifest or planning archive. `make check` and `make test-integration` exited0; all14 tested packages passed, including populated8/9→12 upgrades, RLS, ingestion/fencing, routing, retention and the501-record fixture. Collection took6.311 seconds and its authenticated overview0.575 seconds. Compose syntax, Python compilation and both backup-retention tests also passed. The exported runtime source matches the final index; subsequent changes are documentation only. The export and its disposable database container were removed. Logs: `/tmp/bwb-public-export-check.log`, `/tmp/bwb-public-export-integration.log`. |
+
+Public distribution does not enable public registration, external reviewer access or a live supplier collector. Manual local backup/restore is verified; scheduled/off-host recovery, independent vault-key recovery and actual supplier transport/session isolation remain separate work. Skipped separately for this release: external owner OTP/password sign-in (the production-origin smoke used a temporary administrative verification session), real supplier collection/session/egress checks, and Firefox/WebKit. Session-local `/tmp` logs and screenshots are not published artifacts; reproducible tests remain in source.
+
+## Supplier-independent connection expansion
+
+Data Health now manages named connections, suppliers/default buyers, minimum cadence, per-connection schedules and pause/resume. Connection identities scope accepted orders, internal requirement mappings, count-drop checks, run/lease fences, source history and CSV previews/publication. Duplicate external source keys across feeds no longer share records. Orders and their evidence show the connection name, and order search includes it. Existing seed identities, snapshots, quote/internal PO workflows, buyer closeouts and historical generations remain. There are at most50 connections per workspace, including reserved capacity for the default fictional seed.
+
+Owners can upload normalized fictional JSON records and optional requirements into additional demo feeds. These pass origin/schema/identity/completeness/supplier/mapping checks and durable staging before the shared collection pipeline; acceptance returns a run rather than inventing publication success. Downloads supply a fictional template. Lost-response retries reuse stable keys; revision conflicts retain drafts/files for explicit review. Additional feeds support normalized shipped/delivered statuses; default scenarios retain their pinned scope. Demo reset clears extra fictional source data, fences outstanding work and restores only the default seed. Connection settings and notification preferences survive; generation-scoped supplier bindings on extra feeds clear.
+
+Private workspaces can save intended API/webhook/browser/public-page/email connection settings. These remain `not_configured`, cannot execute or schedule, and have no success timestamp. No credentials, browser session or source URL is accepted through that form. Generic live transports, supplier account/session lifecycle, browser-runner isolation, inbound callbacks, partial-event publication and external messaging remain unimplemented.
+
+Notification preferences are self-scoped and apply to future notices. Condition routing prefers an eligible assignee, then connection buyer, then active members; status notices prefer the connection buyer. Opting out does not broadcast assigned notices to other users. Immutable source history and current conditions remain independent of notices.
+
+Local administration provides an AES-GCM connection-bound encrypted vault, exclusive key generation, restricted file handling, atomic per-entry replacement, metadata-only status and local deletion. It is not wired into collector runtime or deployment. Retention plan/apply commands compact only eligible unchanged intermediate observations and old terminal-run staged payloads under explicit local administration, workspace locks, bounded batches and transactional audits. First/latest/distinct/event-bearing evidence and all run/idempotency/workflow ledgers remain. No cleanup runs automatically. Migration0012 removes runtime observation mutation grants.
+
+See [decision0009](decisions/0009-connection-management.md), [collection strategy](COLLECTION_STRATEGY.md), [API](API.md#connection-management-and-source-identity), [credentials](CREDENTIALS.md) and [retention](RETENTION.md).
+
+| Executed check | Result |
+|---|---|
+| Go/static/frontend | `make check` passed Go unit tests, vet, locked npm installation, TypeScript and production Vite build; final source-account labels/type additions passed the production rebuild at `/tmp/bwb-expanded-web-lineage.log`. Vault, connector and CLI race tests passed. Log `/tmp/bwb-expanded-verified-check.log`; race log `/tmp/bwb-expanded-race-final.log`. |
+| PostgreSQL | Disposable integration checks cover multi-feed identity, source staging/rollback/replay, schedule coalescing, pause/reset fences, private placeholders,50-connection limit, selected-supplier binding, RLS and reviewer denial, preferences/routing, retention limits/protected evidence/concurrency/audit rollback, and populated8/9 upgrades. `make test-integration` passed all14 packages against its fresh disposable PostgreSQL container with constrained runtime access. The corrected notification routing fixture supplies the exact connection binding required by the tightened helper. Container and temporary credentials were removed. Final log `/tmp/bwb-expanded-release-integration.log`. |
+| Browser | Desktop1440×1000 and mobile390×844 passed installed Playwright/Chromium against local fixture-only `http://127.0.0.1:4183`; Browser plugin not available. Verified lost-response connection creation without duplicates, source template download/upload and lost-response revision recovery,422/409 retained editor drafts, retained schedule interval after a concurrent revision, pause during active collection, preference error/conflict/retry/reload private method preparation without execution controls, and duplicate order numbers distinguished/searched by account in rows and evidence. Page identity/content, no framework overlay, no unexpected console/runtime errors, no horizontal overflow; screenshots visually inspected. No real accounts or database writes. Report `/tmp/bwb-expanded-ui-qa-report.json`; script `/tmp/bwb-expanded-ui-qa.cjs`; screenshots `/tmp/bwb-expanded-ui/connections-1440.png`, `connections-390.png`, `private-1440.png`, `private-390.png`; account evidence screenshots `/tmp/bwb-expanded-ui/order-source-1440.png`, `order-source-390.png`. |
+| Dump/restore compatibility | Four Python tests passed actual pg_dump→pg_restore on separate disposable fictional databases at migrations8,9 and12. Replayed sanitation pauses/fences copied jobs, preserves pending private settings as `not_configured`, retains source facts/requirements/events/observation lineage, revokes sessions, and proves real constrained-role own1/foreign0 isolation and history immutability. Container ran with network none/tmpfs and was removed. No project backups, keys or original databases accessed. Log `/tmp/bwb-restore-sql-final-verification.log`; test `BWB_TEST_RESTORE_SQL=1 python3 scripts/test-restore-sql.py -v`. |
+
+The initial expanded suite found a new negative HTTP fixture sending unsupported refresh fields; correcting that fixture preserved strict request validation. A501-order regression exposed a slow correlated supplier count and further planning/publication costs under RLS. Supplier counts and order/condition reads now materialize authorized scopes once, and condition notices pin their single condition/order before routing. Constrained-role EXPLAIN reduced the exception read from16.55 seconds to196 milliseconds and repeated order scans from501 to1. The final501-record fixture collected in6.255 seconds under the45-second worker budget, and its real authenticated HTTP overview returned200 in0.627 seconds under the10-second API budget; the complete fixture case passed within its normal disposable test deadline. No access policy was relaxed. Query evidence: `/tmp/bwb-connection-window-performance.log`; final timing log: `/tmp/bwb-expanded-release-integration.log`. CSV validation also now queries requested keys in the selected feed rather than relying on the bounded500-row overview. Restore sanitation/probes were updated for connection-scoped schema while retaining older-backup support.
+
+Skipped separately: all real supplier/Lenovo/API/webhook/email/scraping checks (deliberately deferred); supplier browser/session/sandbox/egress checks (runner not implemented); updated-build deployment/HTTPS and actual operational encrypted-backup/vault recovery (not performed); Firefox/WebKit (Chromium only). The temporary browser server was stopped after QA. No external notifications were sent. Reviewer Access restrictions remain. Apply pending migrations with local administration credentials before updated API/worker startup; runtime processes never migrate.
+
+## Previous local collection/event milestone
+
+## Collection methods and source events
+
+The registered fictional adapter now implements the common collector contract, with explicit method/authentication/origin descriptors, trusted binding checks and redacted failure classes. Only the fictional adapter is enabled. Database configuration still permits one fictional connection per workspace; private supplier collection, real transports, secret/session storage and inbound callbacks remain unimplemented.
+
+Migration 0009 promotes existing change history to typed append-only source events and permits a notification to reference exactly one condition or source event. Accepted status transitions create recipient-scoped in-app notifications with order-evidence links. First observations and unchanged refreshes generate no status notice. Event/history/notification effects publish in the same transaction; repeated execution does not repeat effects, and distinct recurring transitions retain their own events. Existing condition-notification policy remains. Generic orders currently notify active workspace members; assigned-buyer routing needs a buyer/user mapping.
+
+See the [collection strategy](COLLECTION_STRATEGY.md), [decision 0008](decisions/0008-collection-methods-and-events.md), [API contract](API.md#connector-and-jobs) and [Lenovo discovery record](intake/LENOVO_DISCOVERY.md). Public official Lenovo documentation describes some enterprise/partner integration programs; eligibility for the owner account has not been established. The exact portal/account product and approved read scope were requested and remain pending.
+
+| Executed check | Result |
+|---|---|
+| Go unit/contract checks | `make test` and `go vet ./...` passed; adapter race tests passed. Without explicit disposable DSNs, database tests skip by design and are covered separately below. |
+| Frontend | `make web-check` passed locked installation, TypeScript and production Vite build; final response-type additions also passed a production rebuild. |
+| Database | `make test-integration` passed all 12 test packages using a fresh disposable PostgreSQL container and constrained `bwb_app` role; the container and temporary credentials were removed afterward. Four new source-event cases passed: unchanged/baseline/replayed jobs and distinct recurring transitions, event/notice lineage and read state, notification-failure rollback/retry, workspace/generation RLS and append-only history, recipient eligibility/isolation and reset retention. A populated eight-to-nine migration test passed normal/repeated migration, existing IDs/facts/history/read-notice preservation, typed metadata backfill, validated constraints, no retroactive notices and runtime mutation denial. Existing HTTP, job, purchasing, sanitizer and isolation suites also passed. Log: `/tmp/bwb-collection-integration-final.log`. |
+| Browser | Passed using installed Playwright and cached Chromium; Browser plugin not available. Local fixture-only server at `http://127.0.0.1:4183`, desktop 1440×1000 and mobile 390×844. Status-only notice → correct order evidence; older condition-notice fallback; mark-read failure/retry; read state after reload; empty state; page identity/content; no framework overlay, unexpected console/runtime errors or document overflow. Screenshots were visually inspected. No real account or database writes. Report: `/tmp/bwb-collection-ui-qa-report.json`; script: `/tmp/bwb-collection-ui-qa.cjs`; screenshots: `/tmp/bwb-collection-ui/1440.png`, `/tmp/bwb-collection-ui/390.png`. |
+| Preserved inputs | All 38 imported files are byte-identical to the retained ZIP; SHA256 `31d6c3ab9924245905ee8e7c9d59e84d2eb2e2edb175354c7be4669e1eedfd39`. Implementation-document links resolve. |
+
+The first database run caught an invalid new inactive-user fixture missing its required disable timestamp; the fixture was corrected without application changes. The final full suite passed after that correction. The browser launcher initially expected an uncached default browser version; verification then used the already installed Chromium executable without installing dependencies. The preserved Python planning-package validator could not complete its timestamp-format assertion in the system Python environment; no imported file was changed. This is separate from the successful runtime Go validation and byte-preservation checks.
+
+Skipped separately: live Lenovo/API/webhook/email/public-scrape checks (source/account/scope/credentials unconfigured); supplier browser-runner isolation/session/egress checks (runner not implemented); deployment/new-build HTTPS checks (no deployment requested or performed); Firefox/WebKit (Chromium only). The temporary local browser server was stopped after QA. No external notifications were sent. Existing reviewer Access restrictions remain. Apply migration 0009 once with local administration credentials before starting the updated API/worker; runtime never migrates.
+
+## Previously deployed baseline
+
+Updated October 16, 2026. The owner authorized the remaining build, then explicitly deferred live Lenovo discovery to a later browser investigation. The backend and working UI are deployed on the development host at the configured HTTPS origin behind the existing owner-only Access policy. The existing owner credentials were preserved. There are eight application migrations. The latest issue-resolution deployment preserved one live owner, two workspaces, three supplier profiles, four accepted source lines, one buyer note and two conditions; no private source collection is enabled.
+
+## Issue resolution update
+
+Priorities now separates Needs action, Awaiting verification, Resolved and All issues, with source risk independently filterable. Review / resolve focuses the selected condition. Resolve issue captures a required resolution type, action, result and supporting reference, optional contact/date/quantity, and a required verification follow-up while source risk is active. The transaction records actor/time, the addressed condition evidence, and the workflow change. Reopening requires a reason; activity is separate from supplier change history and notes.
+
+Accepted source proof resolves waiting work and records the current confirmation/date/quantity evidence. Unknown facts cannot establish verification. Recurrence and material worsening reopen work while retaining previous closeout details. Legacy completed tasks retain their old status/notes and display Needs resolution details; generic workflow updates cannot bypass resolution or reopening. Migration0008 adds the status/timestamp constraint and an append-only current-generation/RLS issue-event table. See [decision 0007](decisions/0007-issue-resolution.md) and the [API contract](API.md#issue-resolution).
+
+| Executed check | Result |
+|---|---|
+| Build and static checks | Go vet, production TypeScript/Vite and backend/static image builds passed. |
+| Full database suite | `make test-integration` passed all10 test packages, including seven service and two HTTP issue-resolution cases. Validation, transaction rollback on event failure, exact decimals/units, accountable evidence, idempotent retries/concurrency, stale/reset fences, legacy completion safeguards, verification/recurrence/worsening, reviewer isolation and runtime event update/delete denial passed. Log: `/tmp/bwb-resolution-integration.log`. The first run caught an overly conservative recovery check; the corrected full suite passed explicit safe R01 arrival despite unrelated data attention while still rejecting unknown facts. |
+| Browser workflow | Installed Playwright/Chromium against a separate QA Compose database at4181; desktop1440x1000 and mobile390x844. Required fields/all saved details, selected-condition focus, Needs action/waiting/resolved views, verification and recurrence, explicit reopen reason/history, reload persistence, unchanged supplier facts and immutable snapshots passed. Real422 and concurrent409 retained drafts with explicit revision review. A real accepted request with a deliberately lost response retried under the same key and produced exactly one resolution event. Unsaved note/workflow retention, nested dialog Tab/Escape, mobile width390 and zero app/unexpected console errors passed. Additional fixture checks covered old completed/cleared records and pending-close protection. Report: `/tmp/bwb-resolution-ui-qa-report.json`; scripts: `/tmp/bwb-resolution-ui-qa.cjs`, `/tmp/bwb-resolution-ui-qa-continue.cjs`. |
+| Migration and live preservation | Encrypted pre-migration backup, coordinated stop, one-off7→8 migration and API/worker/public API/static update passed. Existing record counts and notes were preserved; zero QA accounts, source resets or closeouts were inserted into live data. Constraint validation, forced current-generation event RLS, runtime event update/delete denial, local readiness200 and worker migration/queue check passed. Log: `/tmp/bwb-resolution-live.log`; verification: `/tmp/bwb-resolution-live-verification.json`. |
+| Backup and actual restore | Post-migration encrypted backup148,038 bytes restored eight migrations, valid constraints, revoked copied sessions/disabled schedules, and an actual constrained-runtime-role own/foreign workspace probe. The network-none/tmpfs restore container was removed; source database unchanged. Report: `/tmp/bwb-resolution-restore.json`. |
+
+Browser plugin was unavailable; existing Playwright/Chromium was used without installing dependencies. Test fixture/script fixes recognized `rejected` as a terminal collection outcome and the anonymous pre-login401 as expected. These did not require application changes. Cleared cards label retained condition evidence as historical, with current accepted verification facts in Issue activity. Screenshots in the existing visualization directory include `resolution-form-desktop.png`, `resolution-verified-history-desktop.png`, `resolution-issue-card-mobile.png` and `resolution-form-mobile.png`.
+
+The final historical-evidence label passed targeted desktop/mobile rendering and production build checks; screenshots: `resolution-cleared-evidence-label-desktop.png` and `resolution-cleared-evidence-label-mobile.png`. The deployed gateway serves verified final assets `index-Di1IT41x.css` and `index-CbnIjUww.js`. All live services remain running; local readiness200 passed after the final static deployment. The separate QA containers, volume and temporary credentials were removed; live data and its volume were preserved. No additional backend/database retest was needed for the final label-only change.
+
+## Product wording update
+
+Repetitive “fictional” wording is removed from product copy and rendered legacy workspace, supplier, component, quote, date-label, condition, history and notification text. Supplier/order edit forms display clean defaults without changing the original stored name/description when another field is saved. User notes, account identity, source aliases and keys, quote identities and copied quote snapshots remain intact. The CSV template downloads as `internal-orders-template.csv` with its original machine-readable contents. There is no migration or source reset. See [decision 0006](decisions/0006-product-language.md).
+
+TypeScript/Vite and the static image build passed. Focused browser-only CSV checks passed neutral filename, exact contents/alias/buyer preservation, pending controls, download error/retry and clean error display, with no app errors. Report: `/tmp/bwb-neutral-template-qa-report.json`.
+
+Rendered browser-only legacy fixtures passed at1440x900 and390x844: six main views and Demo Controls, source details/history/evidence, supplier editing, quote editing/conversion, internal PO snapshot/draft editing, clean reset confirmation, CSV preview/download and error/retry. Requests retained raw workspace/alias/quote identity and unchanged stored names/descriptions; user notes remained intact. Login and its error/retry path also passed. No real accounts or database writes were used. There were zero app/unexpected console errors or horizontal document overflow. Browser plugin was unavailable, so installed Playwright/Chromium was used without dependency installation. Report: `/tmp/bwb-wording-qa-report.json`; script: `/tmp/bwb-wording-qa.cjs`. Representative screenshots in the existing visualization directory: `wording-desktop-quotes.png`, `wording-mobile-quotes.png`, `wording-desktop-source-detail.png`, `wording-mobile-supplier-editor.png` and `wording-login.png`.
+
+The static frontend was deployed and its final running gateway assets fetched/verified: `index-Qnyy1KMK.css` and `index-BSSHH7rn.js`. Local readiness200 passed; existing backend, worker, database and tunnel services remained running. Deployment log: `/tmp/bwb-wording-live.log`; verification: `/tmp/bwb-wording-live-verification.json`. Backend/database suites were not repeated for this presentation change. The temporary fixture generator was removed; fixtures and QA artifacts remain outside the repository.
+
+## Sidebar layout update
+
+The desktop/tablet sidebar is now180px wide, reduced from228px/200px, with tighter horizontal padding and a compact logo. Workspace selector padding preserves the complete common workspace label. The main content fills the remaining width instead of stopping at1260px; mobile retains its stacked layout and profile strip. TypeScript/Vite and static image builds passed. Rendered fixture QA passed1920x1080,1440x900,1024x768,800x480,390x844 and320x568: full logo/selected workspace label, native dropdown/keyboard, six navigation items, profile actions, short-screen navigation scrolling, mobile footer clearance and no document overflow or app errors. A visual check caught initial native-select clipping; reduced field padding fixed it and all viewports were checked again. Report: `/tmp/bwb-narrow-sidebar-qa-report.json`; screenshots: `narrow-sidebar-desktop.png`, `narrow-sidebar-wide-desktop.png`, `narrow-sidebar-mobile.png` in the existing visualization directory. Browser-only GET fixtures used no real account or database records. Backend/database checks were not repeated for this CSS-only change. The final static gateway serves verified assets `index-Qnyy1KMK.css` and `index-CM9FGGTb.js`; local readiness200 passed. Log: `/tmp/bwb-narrow-sidebar-live.log`.
+
+Demo Controls now appears once as a button in the bottom-left profile actions, above Sign out on desktop and beside it on mobile. It no longer occupies a primary navigation entry. The existing demo view and owner/reviewer availability remain; private workspaces hide the button and leave the demo view when selected. The button marks the active view and scrolls content to the top. TypeScript/Vite build and the static image build passed. Targeted rendered QA with browser-only API fixtures passed at1440x900,800x480,390x844 and320x568: six primary entries, one profile demo action, owner/reviewer/private transitions, keyboard order, visible buttons, footer clearance and no horizontal overflow or app errors. No real accounts or database records were used. Report: `/tmp/bwb-demo-profile-qa-report.json`; screenshots: `demo-profile-desktop.png`, `demo-profile-mobile.png` in the existing visualization directory. That deployment's assets `index-CIYos_l1.css` and `index-D4Kg39Op.js` were fetched from the running static gateway and verified; local readiness200 passed. Log: `/tmp/bwb-demo-profile-live.log`. Only the static frontend was deployed; backend and database checks were not repeated for this navigation-only change.
+
+The workspace selector now sits directly beneath the sidebar logo. Account identity, role and sign-out occupy the bottom left; the former top bar is removed, reclaiming its 85-pixel desktop height for content. Short-screen navigation scrolls independently. On mobile the account strip remains at the bottom, with measured content/keyboard clearance, safe-area padding and visible sign-out error/retry. See [decision 0005](decisions/0005-sidebar-controls.md).
+
+Frontend typecheck/production build and static image build passed. Installed Playwright/Chromium verified1440x900,1024x600,800x480,390x844 and390x568: all seven views, workspace switching, selector placement, absent topbar/main at top, keyboard navigation, short sidebar scrolling, long account names, footer spacing, dialog layering/focus/Escape, focused lower-page controls and actual logout/retry. A simulated failed sign-out grew the measured footer from63px to172.78px; content and scroll clearance adapted. Zero page errors/unexpected console messages or horizontal document overflow. Report: `/tmp/bwb-layout-ui-qa-report.json`.
+
+The initial layout deployment served verified assets `index-DCilJ9Vb.css` and `index-B5V2ltO9.js`; local readiness200 and unauthenticated public Access redirect302 passed. Log: `/tmp/bwb-layout-live-verification.log`. Only the static frontend was deployed; backend/database checks were not repeated for this layout-only change. No schema or credentials changed. The separate QA containers, volume and temporary credentials were removed. Browser plugin was unavailable; existing Playwright/Chromium were used without installation. Screenshots under the existing visualization directory: `layout-desktop.png`, `layout-mobile.png`, `layout-mobile-signout-error.png`.
+
+## Orders and purchasing lifecycle update
+
+The owner requested a visible Orders section and clear quote/order lifecycle separation, then selected the internal quote-to-order workflow. Orders is now a first-class navigation entry with separate internal purchase orders and accepted supplier-observed orders. Priorities contains the exception queue and a View orders action. Quote approval/eligibility, internal purchasing status, source fulfillment/confirmation and buyer task completion retain distinct meanings.
+
+The owner can create manual drafts in their private/presentation workspace, or copy an eligible fictional quote into an internal draft with immutable quote revision/terms. Draft terms are editable, approval precedes recorded outside-app placement, incremental receipts drive partial/full received states, and closure requires full receipt. Cancellation requires a reason and retains existing receipts. Actor/time events record each edit/action. Supplier submission and inventory/accounting posting are not performed. Current limits are one item per internal order, USD, 500 listed internal orders and 200 recent detail events. See [decision 0004](decisions/0004-purchasing-lifecycle.md) and the [API contract](API.md#quotes-and-internal-purchasing-lifecycle).
+
+| Executed check | Result |
+|---|---|
+| Build/static checks | `make check` passed Go tests, vet, locked npm installation, TypeScript and production Vite build. Final responsive-only adjustment passed typecheck/build again. Backend and final static-web images built successfully. Final assets: `index-DB1D5r-V.css`, `index-CtPesSNh.js`. |
+| Complete database suite | `make test-integration` passed all packages against disposable PostgreSQL and the constrained runtime role, including both new HTTP PO cases and four new service PO cases. Log: `/tmp/bwb-orders-integration.log`. Latest observed-lifecycle regression also passed domain race tests after a reported-delivery/unknown-quantity correction. |
+| Lifecycle, identity and isolation | Manual/private create/edit; exact fractional-cent totals; approve/revise/place/partial/full receive/close; placement and receipt references; partial cancellation retaining receipts; active supplier checks; immutable quote snapshot; one conversion per quote/generation; replay and concurrent create/receipt conflicts; refresh preservation; reset/private isolation; Origin/CSRF, reviewer/direct RLS and immutable event/provenance grants passed. |
+| Browser | Installed Playwright/Chromium, isolated QA at4181, desktop1440x900 and mobile390x844. Orders navigation/source distinction, filters/search, manual draft edit/reload, full receipt lifecycle, rejected over-receipt with draft retained, quote conversion/edit isolation, partial cancellation, private no-connector orders,422 and real409 handling, keyboard/Escape and real lost-response retry without duplicate orders passed. Zero page errors/unexpected console messages; mobile document width390. Report: `/tmp/bwb-orders-ui-qa-report.json`; script: `/tmp/bwb-orders-ui-qa.cjs`. |
+| Live migration/deployment | One-off migration6→7, API/worker/public API and static gateway deployment passed. Existing owner/workspaces/suppliers/accepted lines preserved; new internal-order tables started empty. No QA identity, internal order, contact, source reset or test receipt was inserted into live data. Runtime purchasing RLS is enabled/forced. Local readiness200, worker check passed, all live services running and public unauthenticated request302 to Access. Final running gateway assets fetched/verified after the mobile adjustment. Logs: `/tmp/bwb-orders-live-verification.log`, `/tmp/bwb-orders-final-assets.log`. |
+| Encrypted backup/restore | Pre-migration backup completed. Post-migration encrypted backup141,621 bytes restored seven migrations, valid constraints, revoked copied sessions, disabled copied schedules and the constrained runtime-role workspace probe. Source database unchanged; network-none/tmpfs restore container removed. Log: `/tmp/bwb-orders-restore.log`. |
+
+Browser plugin was unavailable, so the existing installed Playwright library/cache was used; no host tool was installed. Desktop/mobile screenshots are outside the repository in `local QA artifact directory`, including `orders-manual-draft-desktop.png`, `orders-partial-receipt-desktop.png`, `orders-private-desktop.png`, `orders-draft-mobile.png` and `orders-private-mobile.png`. QA used its own Compose project, database and temporary credentials; all QA browsers, containers, database volume and credentials were removed. The live project volume was preserved. Final checks also verified ineligible quote conversion is disabled and completing a buyer task leaves both source order facts and internal purchasing records unchanged.
+
+## Supplier directory update
+
+The Suppliers view now exposes **Add supplier** and per-profile **Edit supplier** controls to the owner in their private and presentation workspaces. Profiles store name, contact name, email, phone, website, notes and active/inactive status. They work without orders or a connector. Reviewers have read-only directories. Counts continue to come from accepted orders; manual entries do not imply collected activity.
+
+Migration `0006` backfilled the three existing fictional supplier aliases without resetting the live workspace. Aliases remain immutable when names change, source refresh preserves edits, and generation/revision checks protect concurrent saves. Demo reset explicitly describes restoring seeded profiles and removing added demo suppliers/edits; private profiles are independent. See [decision 0003](decisions/0003-supplier-directory.md) and the [API contract](API.md#supplier-directory).
+
+| Executed check | Result |
+|---|---|
+| Build and static checks | `make check`, final frontend typecheck/build, backend image build and final static gateway image build passed. Final assets: `index-BC8XpyyV.css`, `index-BCefDQCs.js`. |
+| Complete database suite | `make test-integration` passed on disposable PostgreSQL with the actual constrained runtime role, including new API and service supplier cases. Log: `/tmp/bwb-suppliers-final-integration.log`. |
+| Persistence and boundaries | Create/edit, optional-field clearing, Unicode/length/URL/email validation, stale revisions/generations, source alias preservation, refresh persistence, private access, owner/reviewer mutation denial, direct RLS and reset isolation passed. |
+| Browser | Existing Playwright/Chromium, isolated QA at port4181, viewports1440x900 and390x844. Add before seed, edit/reload, all contact fields/status, disabled pending controls, keyboard/cancel, retained draft on422, real concurrent409 and explicit reload, renamed order/priority/detail links, private no-connector directory and mobile width passed. Zero page errors or unexpected console messages. Report: `/tmp/bwb-supplier-ui-qa-report.json`. |
+| Deployment | One-off migration5→6 and API/worker/public API/static gateway updates passed. Final assets fetched from the running gateway contain both supplier controls; local readiness200, worker check passed, all live services running and unauthenticated public access remains302 to Access. Three existing profiles backfilled; one owner/two workspaces/four accepted lines preserved. No QA account, test contact or live demo reset was used in the live database. Log: `/tmp/bwb-suppliers-live-verification.log`. |
+| Backup and restore | Encrypted pre-migration backup completed. The post-migration encrypted backup122,110 bytes restored six migrations with valid constraints, revoked copied sessions, disabled schedules and the actual runtime-role RLS probe passing. Isolated network-none/tmpfs container removed; source database unchanged. Log: `/tmp/bwb-suppliers-restore.log`. |
+
+Browser plugin was unavailable; no browser or host tool was installed. QA containers, their separate database volume and temporary credentials were removed. Screenshots are saved in `local QA artifact directory` as `suppliers-add-desktop.png`, `suppliers-private-directory-desktop.png`, `suppliers-edit-mobile.png`, `suppliers-private-mobile.png` and `suppliers-save-error.png`. The final subsequent UI change only clarified the supplier subtitle and demo reset copy; typecheck/build passed again.
+
+## Current scope
+
+| Area | Implemented and executed evidence |
+|---|---|
+| M0 foundation | Local setup, pinned builds, privileged one-off migrations, separate identities, owner bootstrap, session/origin/CSRF protection; earlier evidence retained below |
+| M1 common pipeline | Registered fictional connector, strict original wire/binding/scope validation, durable source revisions, staged/quarantined batches, accepted observations/current state, change history, owner sanitizer preview/approval with independent public IDs |
+| M2 access/ingestion | Reviewer CLI, mandatory first-use password change, expiry/disable/password reset, session revocation, recent reauthentication for private sharing, runtime workspace/generation RLS, River collection, durable schedules, leases/fences, bounded reads/cursors, atomic CSV preview/publication |
+| M3 buyer work | R01–R05 calculations, explainable priority/detail UI, durable notes/acknowledgment/assignment/follow-up, recipient-bound material notification deduplication/read state, source freshness/failure |
+| M4 demonstration | SC01–SC08 source mutations, generation-aware reset with explicit initialization, independent reviewer seeds/approved snapshot copies, exact persisted quote calculations, honest supplier coverage |
+| M5 operations | Owner-only static HTTPS preview, constrained containers/private service ports, encrypted local backup with retention and actual isolated restore, operational/API/acceptance handoff |
+
+M1's real Lenovo discovery/one-order proof and M5's live browser sandbox/egress proof remain **deferred**, following the owner's request. No real connector, supplier credential, live source schedule, or browser runner is enabled. Off-host backup storage, independent key escrow and automatic backup cadence remain unconfigured. This is not a claim that every original release gate is complete; [ACCEPTANCE.md](ACCEPTANCE.md) maps all 48 cases, including bounded/partial evidence and deferred live cases.
+
+## Earlier milestone build verification
+
+| Check | Result |
+|---|---|
+| `make check` | Passed Go tests, vet, locked npm install, TypeScript check and production Vite build. Database tests skip explicitly in this no-DSN command and run in the next check. |
+| `make test-integration` | Passed the complete final suite on disposable PostgreSQL using the actual constrained runtime role. Final session log: `/tmp/bwb-final-complete-tests.log`. |
+| Domain/backup/HTTP race checks | `go test -race ./internal/domain ./internal/backup ./internal/httpapi` passed. Domain coverage 86.1%, backup crypto coverage 81.8% in the focused run. |
+| Contracts, rules and quote calculations | Baseline, 3-day delay, 48-hour confirmation boundary, unknown/ship-only dates, exact quantities, partial shipment versus receipt, A→B→A→B transitions, incompatible/unknown quote inputs, modeled totals 1330.00/1125.00/990.00 and eligibility passed. |
+| Transaction/job behavior | Retry after commit, unchanged runs, preserved workflow/notes, stale revisions, lease supersession, malformed binding quarantine, concurrent reset, stale-generation publication/notification denial, final retry exhaustion and abandoned manual lease repair passed. |
+| Completeness | Actual120→12 count-drop quarantine preserved every accepted fact/condition/observation/change/notification and last-success. A complete zero-record run retained all four prior records without inferring closure. |
+| Authentication/isolation | Login/logout, idle/absolute expiry, first-use password change, reviewer expiry/disable, recent credential confirmation, cross-workspace list/detail/history/run/snapshot/mutation denial, role/origin/actor injection rejection, runtime RLS and privileged helper temporary-shadow regression passed. |
+| CSV/sanitizer | CSV/JSON fixture equivalence, bad dates/formulas/duplicates/owners, explicit source mapping, preview without publication, atomic approved publication and rule recalculation passed. Synthetic private canaries remained outside public snapshot JSON/lineage; explicit approved reviewer copying passed. No live Lenovo sanitization is claimed. |
+| Images/deployment | Backend/static-web image builds and Compose validation passed at this checkpoint. Live one-off migrations applied 1→5; API, worker, public API and static gateway were recreated successfully. Assets at this checkpoint: `index-D1haViYX.css`, `index-BZaexgDX.js`. |
+| Encrypted backup/restore | Actual post-migration encrypted backup 108,437 bytes restored 5 migrations/1 user/2 workspaces; constraints valid, copied sessions revoked, schedules disabled, runtime role constrained. Restored actual-role RLS own 1/foreign 0 passed. Network none, tmpfs storage, no workers; disposable container removed. Key/file 0600, directories 0700. |
+| Backup retention | `python3 scripts/test-backup-retention.py` passed bounded daily retention, unrelated-file preservation and symlink refusal. |
+| Source preservation | Original ZIP and all 38 imported files remain byte-identical to the attachment. |
+
+The preserved Python planning-package validator was also attempted. It did not pass because this host's `jsonschema.FormatChecker` has no optional date-time checker, causing the validator's own format-check assertion to fail. No imported source was modified and no host dependency was installed. The implemented Go original-wire fixture/required-field/timestamp/binding tests passed independently; this environment issue is distinct from application validation.
+
+## Browser verification
+
+Flow under test: sign-in → accepted fictional source → buyer evidence/saved actions → scenarios/quotes/health/import/reset → scoped reviewer login → revocation and sign-out.
+
+Browser plugin not available. Tests used the already installed Playwright library/Chromium and cached browser, with scripts and credentials outside the repository. The isolated QA entry was http://127.0.0.1:4181; no QA account or canary was inserted into the live database. Viewports 1440x900, 1280x800 and 390x844 passed. The six views rendered meaningful content with no framework overlay, zero page errors and zero unexpected console messages. Document width stayed 390px on mobile; table scrolling stayed inside the table.
+
+Verified real UI interactions:
+
+- Order dialog keyboard cycling, Escape and opener-focus restoration; mobile/source-text wrapping.
+- Saved note, acknowledgment, assignment/follow-up and reload; human work survived collection and recovery.
+- SC02 calculated 3 late days; SC07 made no duplicate change/notification; SC08 resolved delay and retained history/notes.
+- Persisted quote edit recalculated 1115.00 on the server and survived reload.
+- Controlled incomplete source left accepted data intact and displayed failure; baseline recovered it.
+- Schedule enable/pause; CSV template→preview→explicit publish; typed reset confirmation advanced generation and restored seed/quote/workflow state; notification read state.
+- Source img/onerror canary rendered literally, with zero img elements and no executed canary script.
+- Actual API/worker restart and image recreation preserved the same browser session cookie and four current records. An overdue persisted schedule generated exactly one successful run; freshness advanced, with no duplicate changes/notifications. The schedule was paused afterward.
+- Actual privileged CLI provisioned a disposable reviewer. Browser first-use change was required; only its own workspace appeared; owner scope returned 404; own delay scenario worked; owner schedule/CSV controls were absent. A real CLI password reset revoked the active browser session; reload returned 401, sign-in rendered, cached workbench and cookie cleared.
+
+Browser fixes addressed modal focus cycling, mobile sidebar overflow and long untrusted source-text wrapping. Final desktop/mobile screenshots were inspected. Evidence files are outside Git under `local QA artifact directory`: `workbench-priorities-desktop.png`, `workbench-priorities-mobile.png`, `workbench-order-mobile.png`, `workbench-delivery-delay.png`, `workbench-persisted-workflow.png`, `workbench-quote-edited.png`, `workbench-source-failure.png`, `workbench-source-text-canary.png`, `workbench-restart-reconciled.png`, `workbench-reviewer-reset-signin.png`.
+
+The disposable QA services, networks, volume, browser processes and private temporary credential directory were removed. The live project database, credentials, backups and owner-only tunnel remain running. Public reachability evidence covers project bindings and the HTTPS Access gate, not an independent port scan of unrelated host services. Other browsers and live Lenovo behavior remain untested.
+
+## Handoff
+
+Use [README](../README.md), [API](API.md), [operations](OPERATIONS.md), [backup/restore](BACKUP.md), [tunnel](TUNNEL.md), [acceptance matrix](ACCEPTANCE.md) and [open gates](intake/OPEN_GATES.md). Live supplier discovery is the next separately authorized integration phase; fictional success does not close it. Source business rules currently evaluate at 00:00 UTC on the pinned fictional business date; collection times remain actual UTC instants.
+
+---
+
+# Historical M0 evidence
+
+The following is the earlier foundation report retained as implementation history. Current capabilities and limits above supersede its descriptions of future work.
+
+# M0 local foundation and verification
+
+Date: October 16, 2026. Scope: the local development foundation requested for M0. The application is not deployed for reviewers, and no live supplier account has been accessed.
+
+## Implemented state
+
+| Backlog item | Result |
+|---|---|
+| B001 Repository and environment discovery | Complete. The source package contained planning documents only; no application or approved visual asset existed. Development uses the existing Linux x86_64 host and installed toolchain. |
+| B002 Source and deployment intake | Unresolved external inputs recorded in [open gates](intake/OPEN_GATES.md). These are not required for local fictional development and remain required before their respective supplier/deployment operations. |
+| B003 Local baseline and versions | Implemented. Go API/worker/CLI, React/TypeScript/Vite, PostgreSQL/River, pinned dependency lockfiles and container digests, one-off migrations, local Compose stack, secret exclusion, repeatable build/test commands. |
+| B004 Identity, workspaces, owner bootstrap | Implemented and verified in disposable QA. Stable users and separate local identities; single-owner bootstrap; private and fictional presentation workspaces; membership checks. The development owner was subsequently provisioned on October 16, 2026 using user-supplied credentials; local sign-in and access to both workspaces were verified, and the verification session was logged out. |
+
+The M0 local gate is met: the foundation runs with a fictional workspace, while missing live-source and hosting inputs are explicit. The fictional seed is **metadata only** (`fictional-foundation-v1`, business date October 19, 2026). No order fixtures have been ingested. M1–M5 are not complete.
+
+Basic local sessions and a real River probe make this foundation testable. They do not complete M2 account lifecycle, RLS, queue scheduling, ingestion fencing, or external reviewer acceptance.
+
+## Environment and file changes
+
+Development path: `local QA artifact directory` on `the development host`, Linux x86_64. Tools observed: Go 1.26.5, Node 24.19.0, npm 11.17.0, Docker 29.9.0, Compose 5.6.0, PostgreSQL 16.15, and the existing cached Playwright Chromium. No new host tool or browser was installed. Git was initialized locally; no remote, push, or pull request was created.
+
+The final baseline and exact primary dependencies are recorded in [decision 0001](decisions/0001-local-foundation.md); `go.mod`, `go.sum`, and `apps/web/package-lock.json` pin dependencies. Runtime Go/Node/PostgreSQL/Alpine images are pinned by digest in the Dockerfiles and Compose configuration.
+
+Changed implementation areas: `apps/web/`, `cmd/api/`, `cmd/worker/`, `cmd/bwb/`, `internal/auth/`, `internal/httpapi/`, `internal/jobs/`, `internal/store/`, `migrations/`, `deploy/`, `scripts/`, root Compose/Make/toolchain/ignore configuration, `AGENTS.md`, `README.md`, `PROJECT.md`, and implementation documents. The imported planning package and original ZIP remain unchanged.
+
+## Checks executed
+
+| Check | Actual result |
+|---|---|
+| `go test ./...` | Passed. Without explicit test DSNs, database tests skip rather than claim database coverage. |
+| `bash scripts/test-integration.sh` | Passed against a fresh disposable PostgreSQL container with a random loopback port. Runs actual migrations and all Go tests sequentially, then removes its own container. |
+| Password and bootstrap tests | Passed Argon2id round trip, random salt, malformed/over-budget hash rejection, password-file permissions, invalid-input atomicity, concurrent bootstrap, same-owner idempotence, second-owner refusal, separate identity and workspace creation. |
+| Migration and queue schema tests | Passed application checksum guard, migration rerun, upstream River schema migration/rerun, and safe database configuration errors. |
+| API integration as `bwb_app` | Passed constrained-role checks, generic credential failures, real login/session/logout, CSRF rejection, idle/absolute expiry, disabled-account rejection, membership-scoped lists, own detail, and matching foreign/missing-workspace 404 responses. |
+| API boundary unit tests | Passed exact Origin enforcement, no public signup, request bounds, secure cookie configuration/scope, token separation, and bounded expiring login throttle. |
+| Actual River execution | Passed a runtime-role job completion and durable result, repeated execution without duplicate result, private-workspace refusal, and already stale-generation cancellation without a result. This is not a concurrent reset test. |
+| `go vet ./...` | Passed. |
+| `make web-check` / `npm run build` | Passed locked dependency install, TypeScript check, and Vite production asset build. npm reported zero known vulnerabilities in the installed frontend dependency set at the time of the check. |
+| `docker compose config --quiet` | Passed configuration validation. |
+| `docker compose build api` and `docker compose build web` | Passed actual image builds. |
+| `docker compose up -d --wait` | Passed local database, one-off migrations, API readiness, worker startup, and web startup. The API and database have no published ports; the web entry point is `127.0.0.1:4180`. |
+| QA bootstrap through the documented password-file container command | Passed with a temporary, restricted password file and host UID/GID. No password or session token was printed. |
+| Interactive owner prompt | Passed through a pseudo-terminal: email/name prompts, hidden password and confirmation, restricted file mount, and idempotent owner rerun. Captured output contained no password. |
+| Operator `worker --probe-workspace` | Actual QA queue job produced `queue_probe_succeeded` in `foundation_checks`. |
+| Container recreation and persistence | Passed full QA `docker compose down` followed by `up -d --wait` with the existing volume. Owner and workspace IDs, seed metadata, and the completed worker result survived. The final browser flow passed against the rebuilt images afterward. |
+| Browser flow | Passed sign-in, selected workspace details, switching private/fictional workspaces, reload/session persistence, simulated API failure with Retry, mobile rendering, logout, and post-logout API 401. |
+
+`make check` passed on the final source. Script syntax was checked with `bash -n` and `sh -n`; local credential generation and Compose startup were exercised, not inferred from source. Container mount permissions and the PostgreSQL TCP healthcheck were corrected during verification. All 38 imported files and the retained ZIP remain byte-identical to the attachment; implementation-document links resolve. Generated credentials are Git-ignored and absent from the captured development logs. Docker inspection confirms no API, database, or worker port bindings.
+
+## Browser verification
+
+The flow under test was: local entry → owner sign-in → fictional workspace → private workspace → reload → API failure and Retry → mobile layout → logout and denied API access.
+
+The Browser plugin is not available in this session. Verification used the existing Playwright CLI with a task-specific session, then its installed Playwright library and cached Chromium for password-file driven checks. No new browser dependency was installed. QA ran on `http://127.0.0.1:4181` in an isolated disposable Compose project. The retained development app is on port 4180.
+
+| Required browser check | Result |
+|---|---|
+| Page identity | Passed: expected local URL and `BuyersWorkBench` title |
+| Meaningful rendered content | Passed: sign-in and authenticated workspace content |
+| Framework overlay | None detected |
+| Console and runtime health | Zero unexpected console messages and zero page errors. Expected 401s from signed-out/invalid-login checks and a deliberate 503 from the retry test were accounted for. |
+| Screenshot inspection | Desktop 1440×1000 and mobile 390×844 captured and visually inspected |
+| Interaction proof | Workspace details changed, sessions survived reload, Retry recovered, logout revoked access |
+
+Mobile verification initially found document overflow at 510px for a 390px viewport. Positioning the table scroll container contained its accessible labels; document width then measured 390px while the table retained its own horizontal scrolling. The complete browser flow passed after the fix.
+
+Evidence is stored outside the repository:
+
+- Desktop foundation (local QA artifact)
+- Mobile foundation (local QA artifact)
+- Local sign-in (local QA artifact)
+
+Chromium was tested; Firefox, WebKit, and other viewport sizes were not. After verification, the temporary QA containers, volume, credentials, and browser scripts were removed. The development stack remains running, with the external screenshots retained as evidence. Its owner account has since been provisioned and verified; the temporary owner password file was removed.
+
+## Remaining work and handoff
+
+Start with `make dev`, then provision the owner with `make owner` in an interactive terminal. Startup, safe bootstrap automation, worker verification, stopping, and persistence behavior are documented in the [README](../README.md).
+
+M1's next local dependency is the normalized connector contract and deterministic fictional ingestion path. Live Lenovo collection remains untested and unimplemented. Exact orders URL, permitted automation/scope, available fields, login/session behavior, approved shareable fields, deployment host, and public hostname remain open. See [open gates](intake/OPEN_GATES.md).
+
+Full reviewer provisioning and credential lifecycle, workspace RLS, sanitizer implementation and leakage tests, concurrent scenario reset fencing, source schedules, purchasing rules and workflows, restore tests, HTTPS release hosting, and live Lenovo smoke tests have not been performed. No external reviewer access is enabled by M0.
+
+## Local browser forwarding fix
+
+On October 16, 2026, sign-in through the browser's `http://localhost:54442` forwarding address failed with `Request origin is not allowed.` The API's configured primary origin was `http://127.0.0.1:4180`; the rejection happened before password validation.
+
+The API now supports an explicit `APP_DEV_ALLOWED_ORIGINS` list. Aliases are accepted only for an HTTP loopback primary in explicit development mode, and each alias must also be an HTTP loopback origin. Incoming requests still require an exact configured match; absent origins, unlisted ports, deceptive hostnames, and untrusted forwarded headers do not authorize requests. Production origin policy is unchanged. The observed forwarding address is persisted in the Git-ignored `.env` and passed through Compose; the README explains updating it when the browser proxy port changes.
+
+Focused configuration and route regression tests passed with `go test ./internal/httpapi`; `go vet ./internal/httpapi` and Compose validation passed. The backend image was rebuilt and the API recreated successfully. Browser verification used the existing Playwright installation, since the Browser plugin is unavailable, and a temporary loopback proxy reproducing the observed `localhost:54442` address without rewriting Origin. Owner sign-in returned 200 through that proxy and through the primary address; session reload, authenticated workspace rendering, logout, post-logout denial, CSRF rejection, and unlisted-origin rejection all passed. There were zero unexpected console messages or page errors; the page title, meaningful content, and absence of a framework overlay were checked at 1440×1000.
+
+The forwarded sign-in screenshot (local QA artifact) was inspected. The existing user-controlled in-app tab was not driven directly; its reported address was reproduced for the test. Verification sessions were logged out, and temporary credentials, scripts, and the verification proxy were removed. The development API retains the exact alias for the current in-app browser address.
+
+## Owner Cloudflare Tunnel deployment
+
+On October 16, 2026 the owner authorized using the Cloudflare API to tunnel the application already on the server. The inspected fleet registry identifies `the development host` as the current development server. No remote SSH session or production-server mutation was needed. The new owner route is the configured HTTPS origin; the local development app stays on port 4180.
+
+Cloudflare API operations created a dedicated remotely managed `BuyersWorkBench` tunnel, its exact-host ingress and proxied CNAME, and an Access application permitting only `the configured owner identity` through the existing one-time PIN provider. The connector also requires the Access application's JWT audience. Final API read-back confirmed the tunnel healthy with four connections, the expected proxied DNS record, and exactly the owner allow policy. Existing tunnels and unrelated services were preserved.
+
+New implementation files are `compose.tunnel.yaml`, `deploy/public.Dockerfile`, `deploy/public.Caddyfile`, the ignored local deployment manifest, `scripts/fetch-tunnel-token.py`, and [docs/TUNNEL.md](TUNNEL.md), with Makefile, configuration example, roadmap, and intake updates. The frontend image serves compiled React assets through Caddy 2.11.7; cloudflared 2026.10.1 and Caddy are pinned by manifest digest. The public API uses the existing backend image with production HTTPS origin and Secure cookies. No public-profile service has a host port binding. The connector holds only a restricted token-file secret, without database credentials.
+
+Executed validation:
+
+- Production image build, Caddy configuration validation, merged Compose validation, and `up -d --wait` passed. Runtime runs without root, with a read-only filesystem, no capabilities, and no new privileges. The unused upstream Caddy low-port file capability was removed because it prevented execution under those restrictions.
+- Hardened static-container checks passed: application and built JS/CSS 200, health 200, wrong host 421, Vite/source and missing assets 404, SPA routes 200, and no HTML fallback for API errors.
+- Actual public HTTPS browser checks passed at 1440×1000 and 390×844: anonymous Access gate, application page identity and content, owner sign-in, Secure/HttpOnly/SameSite Strict `/api` cookie, session reload, readiness, logout, post-logout denial, CSRF rejection, source route 404, missing API JSON 404, and no mobile document overflow. Screenshots were visually inspected. There were no application page errors. The existing Cloudflare zone injects analytics and challenge scripts; the frontend CSP blocks those scripts, producing four expected console policy messages during this check without affecting the tested app flow.
+- The public flow used a temporary one-hour service credential restricted by a policy on this application. The policy and token were then deleted, leaving only owner email access. This did not send an OTP or read the owner's mailbox; human email-code delivery was not tested.
+- The tunnel's four Cloudflare connections, runtime readiness, production mode/exact HTTPS origin, and the unchanged local readiness endpoint were checked. No host package installation, host firewall change, database reset, or unrelated service restart was performed.
+
+Evidence outside the repository: HTTPS desktop (local QA artifact), HTTPS mobile (local QA artifact), and Cloudflare Access gate (local QA artifact).
+
+The requested owner tunnel is implemented and verified. This is a partial hosting step, not completion of all M5 gates: reviewer provisioning/isolation, sanitization, private source access, backup/restore, and full release rehearsal remain outstanding. Operation, token refresh, and stopping commands are in the [tunnel runbook](TUNNEL.md).

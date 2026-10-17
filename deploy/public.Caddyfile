@@ -1,0 +1,54 @@
+{
+	admin off
+	auto_https off
+	persist_config off
+}
+
+:8080 {
+	root * /srv
+
+	route {
+		@unexpected_host not host {$BWB_PUBLIC_HOST}
+		respond @unexpected_host "Unknown application host." 421
+
+		header {
+			-Server
+			Cache-Control "no-store"
+			Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+			X-Content-Type-Options "nosniff"
+			X-Frame-Options "DENY"
+			Referrer-Policy "no-referrer"
+			Strict-Transport-Security "max-age=31536000"
+		}
+
+		@backend path /api /api/* /healthz /readyz
+		handle @backend {
+			reverse_proxy public-api:8080
+		}
+
+		handle /gateway-healthz {
+			respond "ok" 200
+		}
+
+		# Development source and Vite endpoints are absent from the runtime image.
+		@development path /src /src/* /@vite /@vite/* /@react-refresh /node_modules /node_modules/*
+		handle @development {
+			respond "Not found." 404
+		}
+
+		# Missing asset paths must stay 404 instead of becoming the SPA document.
+		@assets path /assets /assets/*
+		handle @assets {
+			file_server
+		}
+		@file_path path_regexp \.[^/]+$
+		handle @file_path {
+			file_server
+		}
+
+		handle {
+			try_files {path} /index.html
+			file_server
+		}
+	}
+}

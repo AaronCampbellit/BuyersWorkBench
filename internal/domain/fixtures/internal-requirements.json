@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "origin": "fictional",
+  "dataset_version": "seed-1.0",
+  "business_date": "2026-10-19",
+  "business_timezone": "America/Chicago",
+  "requirements": [
+    {
+      "internal_po": "DEMO-PO-10482",
+      "line": "3",
+      "supplier_alias": "fictional_atlas",
+      "internal_part": "DEMO-PART-001",
+      "source_record_key": "SRC-ATLAS-10482:3",
+      "quantity": "24",
+      "uom": "EA",
+      "required_arrival_date": "2026-10-25",
+      "buyer_alias": "demo_buyer"
+    },
+    {
+      "internal_po": "DEMO-PO-10503",
+      "line": "1",
+      "supplier_alias": "fictional_meridian",
+      "internal_part": "DEMO-PART-002",
+      "source_record_key": "SRC-MERIDIAN-10503:1",
+      "quantity": "100",
+      "uom": "EA",
+      "required_arrival_date": "2026-10-26",
+      "buyer_alias": "demo_buyer"
+    },
+    {
+      "internal_po": "DEMO-PO-10520",
+      "line": "1",
+      "supplier_alias": "fictional_harbor",
+      "internal_part": "DEMO-PART-003",
+      "source_record_key": "SRC-HARBOR-10520:1",
+      "quantity": "10",
+      "uom": "EA",
+      "required_arrival_date": "2026-10-24",
+      "buyer_alias": "demo_buyer"
+    },
+    {
+      "internal_po": "DEMO-PO-10541",
+      "line": "1",
+      "supplier_alias": "fictional_atlas",
+      "internal_part": "DEMO-PART-004",
+      "source_record_key": "SRC-ATLAS-10541:1",
+      "quantity": "12",
+      "uom": "EA",
+      "required_arrival_date": "2026-10-29",
+      "buyer_alias": "demo_buyer"
+    }
+  ]
+}

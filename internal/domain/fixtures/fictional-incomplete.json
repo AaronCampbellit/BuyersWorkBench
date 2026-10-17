@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0",
+  "run_id": "30000000-0000-4000-8000-000000000004",
+  "connection_id": "20000000-0000-4000-8000-000000000001",
+  "workspace_id": "10000000-0000-4000-8000-000000000001",
+  "generation": 1,
+  "connector": {
+    "key": "fictional_supplier",
+    "version": "seed-1.0"
+  },
+  "origin": "fictional",
+  "observed_at": "2026-10-19T13:15:00Z",
+  "scope": {
+    "statuses": [
+      "open",
+      "partially_shipped"
+    ],
+    "date_from": "2026-10-01",
+    "date_to": "2026-10-31",
+    "complete": false,
+    "pages_collected": 1,
+    "expected_records": 4,
+    "records_collected": 1,
+    "warnings": [
+      "Fictional pagination failure: expected four records; only one was collected."
+    ]
+  },
+  "records": [
+    {
+      "record_key": "SRC-ATLAS-10482:3",
+      "source_order_id": "SRC-ATLAS-10482",
+      "source_line_id": "3",
+      "supplier_alias": "fictional_atlas",
+      "supplier_part": "FIC-VALVE-208",
+      "item_description": "Fictional valve assembly",
+      "order_placed_at": "2026-10-16T09:00:00Z",
+      "confirmation": {
+        "state": "confirmed",
+        "confirmed_at": "2026-10-16T12:00:00Z"
+      },
+      "status": "open",
+      "quantities": {
+        "ordered": "24",
+        "cancelled": "0",
+        "shipped": "0",
+        "delivered": "0",
+        "uom": "EA"
+      },
+      "latest_date": {
+        "kind": "committed_arrival",
+        "value": "2026-10-21",
+        "source_label": "Fictional committed delivery"
+      },
+      "documented_original_date": null,
+      "remaining_schedule": "known",
+      "source_event_at": null
+    }
+  ]
+}

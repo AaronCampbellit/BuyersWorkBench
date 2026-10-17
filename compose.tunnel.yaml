@@ -1,0 +1,98 @@
+# Optional owner-only HTTPS ingress. Local development services stay unchanged.
+# Run together with compose.yaml and the tunnel profile.
+services:
+  public-api:
+    profiles: [tunnel]
+    image: buyersworkbench-backend:m0
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+    command: [api]
+    environment:
+      DATABASE_URL_FILE: /run/secrets/app_dsn
+      API_ADDR: 0.0.0.0:8080
+      APP_ENV: production
+      APP_ORIGIN: ${BWB_PUBLIC_ORIGIN:?Set the HTTPS public application origin}
+    secrets: [app_dsn]
+    networks: [database, public_backend]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    cpus: 1.0
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8080/readyz']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+    restart: unless-stopped
+
+  public-web:
+    profiles: [tunnel]
+    image: buyersworkbench-public-web:m0
+    build:
+      context: .
+      dockerfile: deploy/public.Dockerfile
+    environment:
+      BWB_PUBLIC_HOST: ${BWB_PUBLIC_HOST:?Set the public application hostname}
+    networks: [public_backend, tunnel_origin]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    cpus: 0.5
+    depends_on:
+      public-api: {condition: service_healthy}
+    healthcheck:
+      test: [CMD-SHELL, 'wget -q --header="Host: $$BWB_PUBLIC_HOST" -O /dev/null http://127.0.0.1:8080/gateway-healthz']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+    restart: unless-stopped
+
+  cloudflared:
+    profiles: [tunnel]
+    image: cloudflare/cloudflared:latest@sha256:a15a3b50b8dabd57ac2090e9484c0247dba9dfa1f0df4d298d4317f9d69eb2d5
+    user: '${BWB_HOST_UID:-1000}:${BWB_HOST_GID:-1000}'
+    command:
+      - tunnel
+      - --no-autoupdate
+      - --loglevel
+      - info
+      - --metrics
+      - 0.0.0.0:20241
+      - run
+      - --token-file
+      - /run/secrets/cloudflared_token
+    secrets: [cloudflared_token]
+    networks: [tunnel_origin, tunnel_egress]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    cpus: 0.5
+    depends_on:
+      public-web: {condition: service_healthy}
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+    restart: unless-stopped
+
+networks:
+  public_backend: {internal: true}
+  tunnel_origin: {internal: true}
+  tunnel_egress: {}
+
+secrets:
+  cloudflared_token: {file: ./.local/cloudflared-token}

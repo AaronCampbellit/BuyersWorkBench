@@ -1,0 +1,112 @@
+# LOCAL DEVELOPMENT ONLY. No production hosting or supplier access is configured.
+name: buyersworkbench-local
+
+x-backend: &backend
+  image: buyersworkbench-backend:m0
+  build:
+    context: .
+    dockerfile: deploy/Dockerfile
+  networks: [database]
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+
+services:
+  postgres:
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    environment:
+      POSTGRES_DB: buyersworkbench
+      POSTGRES_USER: bwb_admin
+      POSTGRES_PASSWORD_FILE: /run/secrets/admin_password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    secrets: [admin_password, app_password]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./deploy/postgres-init.sh:/docker-entrypoint-initdb.d/01-bwb.sh:ro
+    networks: [database]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -h 127.0.0.1 -U bwb_admin -d buyersworkbench']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  migrate:
+    <<: *backend
+    command: [bwb, migrate]
+    environment:
+      DATABASE_URL_FILE: /run/secrets/admin_dsn
+    secrets: [admin_dsn]
+    depends_on:
+      postgres: {condition: service_healthy}
+    restart: 'no'
+
+  api:
+    <<: *backend
+    command: [api]
+    environment:
+      DATABASE_URL_FILE: /run/secrets/app_dsn
+      API_ADDR: 0.0.0.0:8080
+      APP_ENV: development
+      APP_ORIGIN: ${APP_ORIGIN:-http://127.0.0.1:4180}
+      APP_DEV_ALLOWED_ORIGINS: ${APP_DEV_ALLOWED_ORIGINS:-}
+    secrets: [app_dsn]
+    networks: [database, frontend]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8080/readyz']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  worker:
+    <<: *backend
+    command: [worker]
+    environment:
+      DATABASE_URL_FILE: /run/secrets/app_dsn
+    secrets: [app_dsn]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    restart: unless-stopped
+
+  web:
+    image: buyersworkbench-web:m0
+    build: {context: ./apps/web}
+    environment:
+      API_PROXY_TARGET: http://api:8080
+    ports: ['127.0.0.1:${BWB_WEB_PORT:-4180}:4180']
+    networks: [frontend]
+    depends_on:
+      api: {condition: service_healthy}
+    volumes:
+      - ./apps/web/src:/app/src:ro
+      - ./apps/web/index.html:/app/index.html:ro
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+
+  admin:
+    <<: *backend
+    profiles: [tools]
+    entrypoint: [bwb]
+    environment:
+      DATABASE_URL_FILE: /run/secrets/admin_dsn
+    secrets: [admin_dsn]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+
+networks:
+  database: {internal: true}
+  frontend: {}
+
+volumes:
+  postgres_data: {}
+
+secrets:
+  admin_password: {file: ./.local/admin-password}
+  app_password: {file: ./.local/app-password}
+  admin_dsn: {file: ./.local/admin-dsn}
+  app_dsn: {file: ./.local/app-dsn}

@@ -1,0 +1,13 @@
+# Editable supplier directory
+
+October 16, 2026. The owner requested adding suppliers and editing supplier details independently of collected orders. Live Lenovo work remains deferred.
+
+Supplier profiles live in `wb_supplier_profiles`, scoped by workspace and generation, rather than being reconstructed only from order aggregates. Each profile has its own UUID, immutable source alias, editable name/contact metadata, status and optimistic revision. Source aliases continue to bind observations and requirements; changing a display name cannot rekey purchasing facts. Refresh, repeated seed and collection only ensure missing source profiles exist and preserve existing edits.
+
+The owner may create/edit profiles in their own presentation and private workspaces. Reviewers can read their own directory. The API rechecks workspace authorization, owner role, generation and revision. Runtime-role RLS enforces current-generation visibility and owner-only profile writes; column grants prevent edits to alias, workspace, generation or origin. A narrow authorized seed/collection helper can create a missing name-only source profile but cannot overwrite existing contacts or names. Profiles and contacts never cross into reviewer clones or sanitized snapshots.
+
+Order counts and active conditions remain derived from accepted observations. New manual aliases have zero associated activity; a directory entry establishes no on-time delivery metric, successful collection or supplier integration. A private entry is labeled `manual_private` and can be maintained without a connection; the private workspace's source state stays `no_supplier_data`. Website/contact fields are stored metadata, not a browser automation or messaging request.
+
+Demo reset advances generation and recreates the pinned seed profiles with new profile identities/revisions. Manual additions and edits in that demo generation disappear from current views; prior generations remain historical. Other workspaces, private contacts and security audit are unaffected. This matches the existing generation boundary and avoids making contact edits part of supplier source facts.
+
+The API uses the existing session, exact-Origin and CSRF controls, bounded 32 KiB requests and validated plain-text fields. See the [API contract](../API.md#supplier-directory), [migration](../../migrations/0006_supplier_directory.sql), [service](../../internal/workbench/suppliers.go) and [direct API integration tests](../../internal/httpapi/suppliers_integration_test.go). Executed deployment and browser results belong in [BUILD_STATUS.md](../BUILD_STATUS.md).
