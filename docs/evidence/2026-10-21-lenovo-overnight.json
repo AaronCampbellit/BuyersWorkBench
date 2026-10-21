@@ -14,6 +14,18 @@
   "passwordOrMfaEntered": false,
   "sourceWindowsBrowserUsed": false,
   "recurringRenewalConfigured": false,
+  "diagnosticFollowup": {
+    "renewalPolicy": "Reactive during a collector run; no deliberate before-expiry renewal",
+    "normalSsoFunctionAvailable": true,
+    "explicitNormalSsoCalls": 2,
+    "observedSsoCode": "USS-0120",
+    "ssoScriptAndEndpointHttpStatus": 200,
+    "newPortalAuthCookiesObserved": false,
+    "reviewedAuthRequestsAllowed": true,
+    "businessSsoHostRequested": false,
+    "vendorErrorCodeMeaningIndependentlyVerified": false,
+    "proactiveRenewalWouldPreventExpiryVerified": false
+  },
   "interpretation": "The saved VM state did not recover authenticated collection after the overnight gap. Keep the prior capture visibly dated and require normal attended recovery before claiming fresh source data.",
   "limitations": [
     "One bounded overnight attempt; no continuous authentication monitoring",
