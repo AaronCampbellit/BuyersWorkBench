@@ -75,6 +75,15 @@ ssh -NT -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -R 127.0.0.1:8931:
 
 Both commands must stay running. The VM client uses `http://localhost:8931/mcp`, matching the MCP server's accepted Host header; changing that URL to `127.0.0.1` can return HTTP 403 even through a working tunnel. The extension can show "No clients" until the VM issues its first browser request. A listening SSH port alone is insufficient if the Windows MCP process is absent; that case can close HTTP connections without returning a response. There is no need to paste extension tokens, cookies or passwords into chat.
 
+If browser connection prompts do not appear, the extension provides a local connection token. Stop the Windows MCP process, use the extension's token copy button, then run these commands in that same PowerShell window. They accept either the bare copied token or its displayed environment assignment without echoing it or storing its value in shell history:
+
+```powershell
+$env:PLAYWRIGHT_MCP_EXTENSION_TOKEN = ((Get-Clipboard -Raw) -replace '\s','') -replace '^PLAYWRIGHT_MCP_EXTENSION_TOKEN=',''
+npx.cmd -y @playwright/mcp@0.0.83 --extension --host 127.0.0.1 --port 8931
+```
+
+Keep the intended Lenovo tab open in the Chrome profile containing the extension. This token authorizes the local MCP/extension connection; Lenovo sign-in/MFA remains necessary. A server restart invalidates existing MCP HTTP sessions, so start a new VM provisioning attempt afterward. Never commit the token or request it through chat.
+
 From this service directory on the VM, run:
 
 ```sh

@@ -21,6 +21,9 @@ function source(customer = 'FICT-CUSTOMER', url = 'https://account.lenovo.com/us
       sessionStorage: {}, locale: 'en-US', timezone: 'America/Chicago' }),
     context: () => ({ cookies: async (urls: string[]) => {
       assert.ok(urls.every(url => new URL(url).hostname.endsWith('.lenovo.com')));
+      assert.ok(urls.includes(url), 'capture cookies applicable to the selected order page');
+      assert.ok(urls.includes('https://openapi.lenovo.com/us/lenovopro/en/ofp/order/authDetail'));
+      assert.ok(urls.includes('https://openapi.lenovo.com/us/lenovopro/en/ofp/auth/mobileOrder/list'));
       return [{ name: 'FICT-COOKIE', value: 'FICTIONAL-COOKIE-SECRET', domain: '.lenovo.com', path: '/', expires: -1, httpOnly: true, secure: true, sameSite: 'Lax' }];
     } }) } as unknown as Page;
 }

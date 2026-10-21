@@ -32,8 +32,10 @@ export async function captureScopedSession(page: Page, expectedCustomer: string,
       sessionStorage: Object.fromEntries(Object.keys(sessionStorage).map(name => [name, sessionStorage.getItem(name)!])),
       locale: navigator.language, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }));
     stage = 'source_cookies';
-    const cookies = await page.context().cookies(['https://account.lenovo.com/', 'https://openapi.lenovo.com/',
-      'https://www.lenovo.com/', 'https://passport.lenovo.com/', 'https://bpsso.lenovo.com/']);
+    const cookies = await page.context().cookies([source.href,
+      'https://openapi.lenovo.com/us/lenovopro/en/ofp/order/authDetail',
+      'https://openapi.lenovo.com/us/lenovopro/en/ofp/auth/mobileOrder/list',
+      'https://www.lenovo.com/us/lenovopro/en/', 'https://passport.lenovo.com/', 'https://bpsso.lenovo.com/']);
     if (cookies.some(c => !(c.domain === 'lenovo.com' || c.domain === '.lenovo.com' || c.domain.endsWith('.lenovo.com'))))
       return { ok: false, code: 'unexpected_cookie_scope' };
     const capturedAt = new Date().toISOString();
