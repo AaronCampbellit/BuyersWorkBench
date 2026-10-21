@@ -25,6 +25,7 @@ def safe_directory(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--private-dir', required=True, type=pathlib.Path)
+    parser.add_argument('--mode', choices=('collect', 'renew', 'verify-session'), default='collect')
     args = parser.parse_args()
     private = args.private_dir.absolute()
     # Refuse symbolic ancestors before resolving or mounting private state.
@@ -74,7 +75,7 @@ def main():
                    '--mount', f'type=bind,src={state},dst=/state',
                    '--mount', f'type=bind,src={data},dst=/data',
                    '--mount', f'type=bind,src={egress},dst=/egress,readonly',
-                   '--workdir', '/runner', IMAGE, 'xvfb-run', '-a', 'node', 'src/cli.ts']
+                   '--workdir', '/runner', IMAGE, 'xvfb-run', '-a', 'node', 'src/cli.ts', args.mode]
         container = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
         try:
             stdout, _ = container.communicate(timeout=660)

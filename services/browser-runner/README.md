@@ -1,6 +1,6 @@
 # Lenovo browser collector
 
-This standalone Node 24/TypeScript CLI collects the authenticated Lenovo Pro US account's visible orders from the last **90 calendar dates, including today**, using the configured account timezone. It uses Playwright and the website's observed JSON responses. It needs no agent, language model, MCP server, Chrome extension or per-run human navigation. Initial session provisioning and interactive login/MFA fallback remain operator tasks.
+This standalone Node 24/TypeScript CLI collects the authenticated Lenovo Pro US account's visible orders from the last **90 calendar dates, including today**, using the configured account timezone. It uses Playwright and the website's observed JSON responses. Collection and renewal need no agent, language model, MCP server, Chrome extension or per-run human navigation. The separate attended provisioning command uses an operator-selected local Chrome MCP connection; normal sign-in/MFA remains manual.
 
 It is separate from the deployed Go API/worker. It writes encrypted, minimized observations outside the checkout; it does not publish a Go `domain.Batch`, change database configuration or activate recurring collection. See [the collection strategy](../../docs/COLLECTION_STRATEGY.md) and [discovery evidence](../../docs/intake/LENOVO_DISCOVERY.md).
 
@@ -28,13 +28,16 @@ lenovo-private/
   credentials/                  mounted read-only
     config.json
     key.pem                     RSA private key, at least 3072 bits
-    session-import.enc          encrypted initial session
+    session-import.enc          optional legacy encrypted initial session
   state/session.enc             created after a verified run
+  state/session-candidate.enc   attended capture, awaiting VM verification
   data/
     snapshots/<run UUID>.enc    immutable encrypted observations/changes
     runs/<run UUID>.json        redacted attempt metadata
     last-success.json           atomic accepted snapshot pointer
     last-attempt.json           latest redacted attempt
+    session-health.json         expiry clocks bound to the saved state digest
+    renewal-test-last.json      finite test progress/result, when run
   egress/                       temporary proxy socket
 ```
 
@@ -56,10 +59,58 @@ Unknown configuration fields are rejected. Page size is 1–100, pages 1–100, 
 
 The initial capsule may use the explicitly imported `lenovo-vm-probe:v1` context. Updated sessions use `buyersworkbench:lenovo:session:v1`; observations use a distinct authenticated context. Both use AES-256-GCM with fresh nonces and RSA-OAEP-SHA256 wrapped data keys. Session plaintext stays in the process and temporary browser filesystem. The existing Go connection vault is not yet wired to this CLI.
 
+## Attended recovery from Windows Chrome
+
+Keep the private directory's existing key and independently confirmed account configuration. Sign in normally in the intended Lenovo order list/detail tab on the source laptop. In one PowerShell window, start the extension-backed MCP server:
+
+```powershell
+npx.cmd -y @playwright/mcp@0.0.83 --extension --host 127.0.0.1 --port 8931
+```
+
+In a separate window, forward the VM's loopback port to that server, replacing `YOUR_VM_SSH_HOST` with the existing SSH alias/host:
+
+```powershell
+ssh -NT -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -R 127.0.0.1:8931:127.0.0.1:8931 YOUR_VM_SSH_HOST
+```
+
+Both commands must stay running. The VM client uses `http://localhost:8931/mcp`, matching the MCP server's accepted Host header; changing that URL to `127.0.0.1` can return HTTP 403 even through a working tunnel. The extension can show "No clients" until the VM issues its first browser request. A listening SSH port alone is insufficient if the Windows MCP process is absent; that case can close HTTP connections without returning a response. There is no need to paste extension tokens, cookies or passwords into chat.
+
+From this service directory on the VM, run:
+
+```sh
+npm run provision -- --private-dir /absolute/path/outside-the-checkout/lenovo-private
+python3 run-isolated.py --private-dir /absolute/path/outside-the-checkout/lenovo-private --mode verify-session
+```
+
+When prompted in Chrome, select the signed-in Lenovo order tab and connect. Provisioning reloads that selected page and confirms a successful order response for the configured account. It exports only Lenovo-scoped cookies and that account origin's local/session storage. AES-GCM encryption and public-key wrapping happen in the source MCP process; only ciphertext is transferred. The private RSA key stays on the VM. No raw storage file, response body or screenshot is written.
+
+The provisioning wrapper holds the collector lock and stages `session-candidate.enc`; it never replaces active credentials or accepted facts. `verify-session` launches the isolated VM browser with that candidate. Only a full successful account/90-date/pagination/history check promotes it to `session.enc`. A failed verification preserves the active session and last success. A new private directory can use this path without a legacy import capsule once its directories, key and account configuration are provisioned. The Go vault and interactive VM password/MFA login are not implemented by this command.
+
+## Normal renewal and finite expiry test
+
+Version 0.3.0 records separate expiry clocks for Passport (`LPSWUST`, `LPSWUTGT`) and portal (`gateKeeper-token`, `online-token`) cookies. The earliest known clock limits renewal timing. Long-lived business-SSO or retention cookies do not establish usable account access. Browser expiry metadata is a planning signal, not proof of server-side validity.
+
+Ordinary collection explicitly invokes the website's normal SSO when a known limiting expiry is within ten minutes. `--mode renew` invokes it immediately, including while reads still work:
+
+```sh
+python3 run-isolated.py --private-dir /absolute/path/outside-the-checkout/lenovo-private --mode renew
+```
+
+Every successful run still requires complete authenticated collection before saving state. Its `renewal` result distinguishes `full`, `portal_only`, `passport_only`, `unchanged`, `unknown` and `not_attempted`. `full` means both observed clocks advanced and collection succeeded; an HTTP 200 or a long cookie date alone is insufficient. `session-health.json` contains expiry metadata and a SHA-256 binding to the encrypted saved state, without cookie values.
+
+The following is a finite experiment, not a recurring collector or production keep-alive:
+
+```sh
+python3 run-renewal-test.py --private-dir /absolute/path/outside-the-checkout/lenovo-private --dry-run
+python3 run-renewal-test.py --private-dir /absolute/path/outside-the-checkout/lenovo-private
+```
+
+It requires fresh verified state and complete Passport/portal clocks. It plans a single renewal ten minutes before the earlier original expiry, then a separate collection ninety seconds after the later original expiry. Both clocks must advance and remain valid beyond that proof point. Otherwise it stops with `not_verified`. It also stops if another run changes the saved state, cancellation occurs or the bounded window expires (default four hours; maximum six). Progress/result is written privately to `data/renewal-test-last.json`. Keep its terminal running until completion; no background service is installed. The dry run makes no supplier requests. Passing this experiment would prove that bounded interval only; repeated natural expiry and multi-day testing remain necessary.
+
 ## Collection contract
 
 1. Restore the saved session, or use the encrypted import when no saved session exists. Invalid saved state fails closed.
-2. Open the fixed orders page and use Lenovo's normal SSO flow when needed. Authentication recovery allows one fresh collection attempt without filling credentials or submitting challenges.
+2. Open the fixed orders page and use Lenovo's normal SSO flow when needed, explicitly requested, or within ten minutes of a known limiting expiry. Authentication recovery allows one fresh collection attempt without filling credentials or submitting challenges.
 3. Clear status/search/period filters and traverse the entire visible account list. Validate page numbers, totals, size, version and duplicate identities. The observed endpoint has period buckets rather than an exact 90-date filter, so the complete list is filtered locally; older rows are not persisted. Configured limits bound this traversal.
 4. Fetch each selected order's details through fixed endpoints. Validate customer/order/ecommerce identities, shapes, exact quantities and date formats.
 5. Repeat the full list traversal and compare membership, placement dates and source status. Changed/truncated lists fail. Observations cover an interval, not a transactional instant at Lenovo.
@@ -80,7 +131,7 @@ Each order also exposes `linkedTrackingInformation` for an eventual **Linked tra
 
 The allowlist excludes addresses, email/customer names, payment details, pricing, recommendations and serial numbers. Tracking URLs and identifiers remain private, encrypted outside the checkout. Runtime extracts links from the Lenovo detail JSON and never contacts UPS. Carrier-site changes or downtime cannot fail an otherwise complete order pull. A separate owner-authorized VM inspection opened UPS without Lenovo cookies and observed tracking details, but repeated carrier loading was inconsistent; automatic UPS status/ETA enrichment remains unimplemented. Lenovo shipment dates remain labeled as Lenovo observations.
 
-No raw response diagnostic, screenshot or HAR is written. The encrypted session document separately retains the provider-owned browser storage needed for restart. Captures are immutable; a baseline creates no fabricated transition and repeated unchanged facts create zero changes. Connector 0.2.0 reads 0.1.0 history without inventing changes for newly captured tracking coverage. Losing an already reviewed tracking link fails completeness validation and preserves last success. `changed` compares facts and scope; `changeCount` counts source transitions, so changing the date window alone is not a supplier event. Retention remains an explicit operator decision; this CLI does not delete history automatically.
+No raw response diagnostic, screenshot or HAR is written. The encrypted session document separately retains the provider-owned browser storage needed for restart. Captures are immutable; a baseline creates no fabricated transition and repeated unchanged facts create zero changes. Connector 0.3.0 reads 0.1.0/0.2.0 history without inventing changes for newly captured tracking or authentication metadata. Losing an already reviewed tracking link fails completeness validation and preserves last success. `changed` compares facts and scope; `changeCount` counts source transitions, so changing the date window alone is not a supplier event. Retention remains an explicit operator decision; this CLI does not delete history automatically.
 
 ## Verification and next integration
 

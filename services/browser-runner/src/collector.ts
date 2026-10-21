@@ -9,7 +9,7 @@ export interface Transport {
   detail(order: OrderRef): Promise<unknown>;
 }
 export interface Snapshot {
-  schemaVersion: 'lenovo_orders.v1'; connectorVersion: '0.1.0' | '0.2.0'; origin: 'live_private';
+  schemaVersion: 'lenovo_orders.v1'; connectorVersion: '0.1.0' | '0.2.0' | '0.3.0'; origin: 'live_private';
   accountBinding: string; runId: string; startedAt: string; finishedAt: string;
   scope: Scope; coverage: { complete: true; ordersListed: number; ordersCollected: number; listPages: number; listPasses: 2 };
   orders: Order[];
@@ -74,7 +74,7 @@ export async function collect(transport: Transport, options: Options): Promise<S
   const final = await listAll(transport, options);
   requireThat(digest(initial.orders) === digest(final.orders), 'incomplete_scope');
   requireThat(!options.signal.aborted, 'collection_cancelled');
-  return { schemaVersion: 'lenovo_orders.v1', connectorVersion: '0.2.0', origin: 'live_private',
+  return { schemaVersion: 'lenovo_orders.v1', connectorVersion: '0.3.0', origin: 'live_private',
     accountBinding: digest(['lenovo_pro_us', options.customerId]), runId: randomUUID(),
     startedAt: options.now.toISOString(), finishedAt: new Date().toISOString(), scope,
     coverage: { complete: true, ordersListed: initial.orders.length, ordersCollected: orders.length,

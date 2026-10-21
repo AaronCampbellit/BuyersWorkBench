@@ -60,6 +60,8 @@ export class LenovoBrowser implements Transport {
   private template: URL | null = null;
   private blocked = 0;
   private renewals = 0;
+  private ssoInvocations = 0;
+  private renewalFailure: 'sso_function_unavailable' | 'no_refresh_response' | 'refresh_http_failure' | null = null;
   private readonly pageSize: number;
   private constructor(browser: Browser, context: BrowserContext, page: Page, bridge: Server, pageSize: number) {
     this.browser = browser; this.context = context; this.page = page; this.bridge = bridge; this.pageSize = pageSize;
@@ -128,7 +130,8 @@ export class LenovoBrowser implements Transport {
   async renewSession(): Promise<void> {
     // Only the website's observed SSO function; no credential entry or challenge
     // submission. The outer collection restarts rather than mixing partial runs.
-    const pending = this.page.waitForResponse(r => new URL(r.url()).hostname === 'openapi.lenovo.com' && /\/(refreshToken|refreshSmbToken)$/.test(new URL(r.url()).pathname),
+    this.ssoInvocations++;
+    const pending = this.page.waitForResponse(r => new URL(r.url()).hostname === 'openapi.lenovo.com' && r.request().method() === 'POST' && /\/(refreshToken|refreshSmbToken)$/.test(new URL(r.url()).pathname),
       { timeout: 12000 }).catch(() => null);
     const available = await this.page.evaluate(() => {
       const api = (window as unknown as { flash_fe_core_tool?: { $Api?: { syncSSO?: () => void } } }).flash_fe_core_tool?.$Api;
@@ -136,8 +139,12 @@ export class LenovoBrowser implements Transport {
       api.syncSSO(); return true;
     }).catch(() => false);
     const response = await pending;
-    if (!available || !response) throw new Failure('authentication_required');
-    responseFailure(response.status(), null);
+    if (!available || !response) {
+      this.renewalFailure = !available ? 'sso_function_unavailable' : 'no_refresh_response';
+      throw new Failure('authentication_required');
+    }
+    try { responseFailure(response.status(), null); this.renewalFailure = null; }
+    catch (error) { this.renewalFailure = 'refresh_http_failure'; throw error; }
   }
   private async fetch(url: URL): Promise<unknown> {
     requireThat(url.origin === 'https://openapi.lenovo.com' && [LIST_PATH, DETAIL_PATH].includes(url.pathname), 'configuration_invalid');
@@ -175,5 +182,6 @@ export class LenovoBrowser implements Transport {
   }
   blockedCount(): number { return this.blocked; }
   renewalCount(): number { return this.renewals; }
+  authDiagnostics() { return { normalSsoInvocations: this.ssoInvocations, renewalHttp200Responses: this.renewals, lastRenewalFailure: this.renewalFailure }; }
   async close(): Promise<void> { await this.browser.close().catch(() => {}); this.bridge.close(); }
 }

@@ -1,6 +1,6 @@
 {
   "name": "buyers-workbench-browser-runner",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -9,8 +9,10 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "node --test test/*.test.ts",
-    "check": "npm run typecheck && npm test",
-    "collect": "node src/cli.ts"
+    "check": "npm run typecheck && npm test && npm run test:host",
+    "test:host": "python3 -m unittest discover -s test -p '*_test.py' -v",
+    "collect": "node src/cli.ts",
+    "provision": "python3 provision-session.py"
   },
   "dependencies": {
     "playwright": "1.64.1"
