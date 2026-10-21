@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, constants, privateDecrypt, createDecipheriv } from 'node:crypto';
 import { createServer } from 'node:http';
+import type { ServerResponse } from 'node:http';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -51,28 +52,56 @@ test('wrong account or tab cannot produce a capsule', async () => {
   assert.deepEqual(failed, { ok: false, code: 'source_capture_failed', stage: 'source_storage' });
   assert.equal(JSON.stringify(failed).includes('FICTIONAL-PRIVATE-PROVIDER-EXCEPTION'), false);
 });
-test('MCP transport is loopback-only and handles SSE without leaking source tool output', async () => {
+test('MCP transport answers server heartbeat requests over GET SSE and preserves loopback/Host boundaries', async () => {
   for (const url of ['https://127.0.0.1/mcp', 'http://169.254.169.254/mcp', 'http://user:secret@127.0.0.1/mcp', 'http://127.0.0.1/mcp?token=x']) assert.throws(() => localMcpUrl(url));
   const seen: string[] = [];
+  let events: ServerResponse | undefined, pending: ServerResponse | undefined, pendingId: number | undefined;
+  let eventReady!: () => void;
+  const connected = new Promise<void>(resolve => { eventReady = resolve; });
+  const toolResult = { content: [{ type: 'text', text: '### Result\n' + JSON.stringify({ ok: true, envelope: 'FICT-CIPHERTEXT' }) + '\n### Ran Playwright code\nREDACTED' }] };
+  let failTool = false;
   const server = createServer(async (req, res) => {
     assert.ok(req.headers.host?.startsWith('localhost:'), 'preserve the MCP server accepted localhost Host header');
+    if (req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'text/event-stream' }); res.flushHeaders(); events = res; eventReady(); return;
+    }
     let raw = ''; for await (const part of req) raw += part;
-    const message = JSON.parse(raw); seen.push(message.method);
+    const message = JSON.parse(raw);
+    if (!message.method) {
+      seen.push('ping_reply'); assert.equal(message.id, pendingId); assert.deepEqual(message.result, {});
+      res.writeHead(202); res.end();
+      const result = failTool ? { isError: true, content: [{ type: 'text', text: 'FICTIONAL-PRIVATE-BROWSER-EXCEPTION' }] } : toolResult;
+      pending!.end('event: message\ndata: ' + JSON.stringify({ jsonrpc: '2.0', id: pendingId, result }) + '\n\n'); return;
+    }
+    seen.push(message.method);
     if (message.method !== 'initialize') assert.equal(req.headers['mcp-session-id'], 'FICT-SESSION');
-    if (!message.id) { res.writeHead(202); res.end(); return; }
-    const result = message.method === 'initialize' ? { protocolVersion: '2025-03-26' } : message.method === 'tools/list'
-      ? { tools: [{ name: 'browser_run_code_unsafe' }] } : { content: [{ type: 'text', text: '### Result\n' + JSON.stringify({ ok: true, envelope: 'FICT-CIPHERTEXT' }) + '\n### Ran Playwright code\nREDACTED' }] };
+    if (message.id === undefined) { res.writeHead(202); res.end(); return; }
+    if (message.method === 'tools/call') {
+      await connected; pending = res; pendingId = message.id;
+      res.writeHead(200, { 'Content-Type': 'text/event-stream' }); res.flushHeaders();
+      // Same ID in the opposite direction must remain a server request,
+      // never be mistaken for the tool result or silently ignored.
+      events!.write('event: message\ndata: ' + JSON.stringify({ jsonrpc: '2.0', id: message.id, method: 'ping' }) + '\n\n'); return;
+    }
+    const result = message.method === 'initialize' ? { protocolVersion: '2025-03-26', capabilities: { tools: {} }, serverInfo: { name: 'FICT-SERVER', version: '1' } }
+      : { tools: [{ name: 'browser_run_code_unsafe', inputSchema: { type: 'object' } }] };
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Mcp-Session-Id': 'FICT-SESSION' });
     res.end('event: message\ndata: ' + JSON.stringify({ jsonrpc: '2.0', id: message.id, result }) + '\n\n');
   });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+  let mcp: LocalMcp | undefined;
   try {
     const address = server.address(); assert.ok(address && typeof address === 'object');
-    const mcp = new LocalMcp('http://localhost:' + address.port + '/mcp');
+    mcp = new LocalMcp('http://localhost:' + address.port + '/mcp');
     const tool = await mcp.initialize();
     assert.deepEqual(await mcp.run(tool, 'async () => ({ok:true})'), { ok: true, envelope: 'FICT-CIPHERTEXT' });
-    assert.deepEqual(seen, ['initialize', 'notifications/initialized', 'tools/list', 'tools/call']);
-  } finally { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); }
+    failTool = true;
+    await assert.rejects(mcp.run(tool, 'async () => ({ok:true})'), (error: unknown) => {
+      const failure = error as { code: string; message: string };
+      return failure.code === 'network_error' && !failure.message.includes('FICTIONAL-PRIVATE-BROWSER-EXCEPTION');
+    });
+    assert.deepEqual(seen, ['initialize', 'notifications/initialized', 'tools/list', 'tools/call', 'ping_reply', 'tools/call', 'ping_reply']);
+  } finally { await mcp?.close(); server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); }
 });
 test('provisioning stages a valid candidate and preserves active credentials/history on account mismatch', { skip: process.getuid?.() === 0 }, async () => {
   const root = mkdtempSync(join(tmpdir(), 'bwb-provision-test-'));
@@ -83,11 +112,12 @@ test('provisioning stages a valid candidate and preserves active credentials/his
   writeFileSync(join(root, 'data/last-success.json'), 'EXISTING-ACCEPTED-HISTORY', { mode: 0o600 });
   let result = await captureScopedSession(source(), 'FICT-CUSTOMER', publicKey);
   const server = createServer(async (req, res) => {
+    if (req.method === 'GET') { res.writeHead(405); res.end(); return; }
     let text = ''; for await (const part of req) text += part;
     const request = JSON.parse(text);
-    if (!request.id) { res.writeHead(202); res.end(); return; }
-    const value = request.method === 'initialize' ? { protocolVersion: '2025-03-26' } : request.method === 'tools/list'
-      ? { tools: [{ name: 'browser_run_code_unsafe' }] } : { content: [{ type: 'text', text: '### Result\n' + JSON.stringify(result) }] };
+    if (request.id === undefined) { res.writeHead(202); res.end(); return; }
+    const value = request.method === 'initialize' ? { protocolVersion: '2025-03-26', capabilities: { tools: {} }, serverInfo: { name: 'FICT-SERVER', version: '1' } } : request.method === 'tools/list'
+      ? { tools: [{ name: 'browser_run_code_unsafe', inputSchema: { type: 'object' } }] } : { content: [{ type: 'text', text: '### Result\n' + JSON.stringify(result) }] };
     res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ jsonrpc: '2.0', id: request.id, result: value }));
   });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));

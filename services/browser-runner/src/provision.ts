@@ -12,6 +12,7 @@ import { LocalMcp } from './mcp-client.ts';
 import { Failure, safeFailure, requireThat } from './errors.ts';
 
 let stage = 'configuration', sourceFailure: string | undefined, sourceStage: string | undefined;
+let mcp: LocalMcp | undefined;
 try {
   requireThat(process.env.BWB_PROVISION_LOCK_HELD === '1', 'configuration_invalid');
   const { values } = parseArgs({ options: { 'private-dir': { type: 'string' }, 'mcp-url': { type: 'string', default: 'http://localhost:8931/mcp' } }, strict: true });
@@ -26,7 +27,7 @@ try {
   const key = readPrivate(keyFile, 16384); let publicKey: string;
   try { publicKey = createPublicKey(key).export({ type: 'spki', format: 'der' }).toString('base64'); } finally { key.fill(0); }
   stage = 'connecting_mcp';
-  const mcp = new LocalMcp(values['mcp-url']!), tool = await mcp.initialize();
+  mcp = new LocalMcp(values['mcp-url']!); const tool = await mcp.initialize();
   const code = 'async (page) => { const capture = ' + captureScopedSession.toString() + '; return capture(page, ' + JSON.stringify(config.customerId) + ', ' + JSON.stringify(publicKey) + '); }';
   stage = 'capturing_selected_source_tab';
   const result = await mcp.run(tool, code) as Record<string, unknown>;
@@ -48,4 +49,4 @@ try {
 } catch (error) {
   const failure = error instanceof Failure ? error : safeFailure(error, 'configuration_invalid');
   console.log(JSON.stringify({ outcome: 'failed', code: failure.code, stage, sourceFailure, sourceStage, activeSessionReplaced: false })); process.exitCode = 1;
-}
+} finally { await mcp?.close(); }

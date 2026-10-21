@@ -43,7 +43,7 @@ cd BuyersWorkBench
 make browser-check
 ```
 
-`make browser-check` installs the locked project-local dependencies and runs the type check plus 33 Node and four Python invented-fixture/host tests; it makes no supplier request. Playwright 1.64.1, TypeScript 7.0.2 and `@types/node` 24.19.2 are locked in the service. Node 24's JSON reviver source token is required for lossless supplier IDs. Do not replace it with a round-tripping `JSON.parse` in the browser.
+`make browser-check` installs the locked project-local dependencies and runs the type check plus 33 Node and four Python invented-fixture/host tests; it makes no supplier request. Playwright 1.64.1, MCP SDK 1.32.1, TypeScript 7.0.2 and `@types/node` 24.19.2 are locked in the service. The SDK handles attended MCP sessions, the GET event stream and heartbeat requests; ordinary supplier collection still needs no MCP server. Node 24's JSON reviver source token is required for lossless supplier IDs. Do not replace it with a round-tripping `JSON.parse` in the browser.
 
 For the whole source checkout:
 
