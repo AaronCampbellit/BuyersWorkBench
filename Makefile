@@ -1,4 +1,4 @@
-.PHONY: setup dev down logs owner status migrate test test-integration check web-check tunnel-build tunnel-up tunnel-down tunnel-status tunnel-logs tunnel-refresh-token backup restore-test
+.PHONY: setup dev down logs owner status migrate test test-integration check web-check browser-check tunnel-build tunnel-up tunnel-down tunnel-status tunnel-logs tunnel-refresh-token backup restore-test
 
 setup:
 	python3 scripts/setup-local.py
@@ -30,7 +30,10 @@ test-integration:
 web-check:
 	cd apps/web && npm ci && npm run build
 
-check: test web-check
+browser-check:
+	cd services/browser-runner && npm ci && npm run check
+
+check: test web-check browser-check
 	go vet ./...
 
 tunnel-build:

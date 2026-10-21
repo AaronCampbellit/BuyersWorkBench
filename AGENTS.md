@@ -1,6 +1,7 @@
 # BuyersWorkBench development
 
 - Read `PROJECT.md` and `docs/BUILD_STATUS.md` for the implemented milestone and remaining work. API contracts and implementation choices are under `docs/`. When available, the original local-only planning archive is under `docs/planning/buyers-workbench-plan/`.
+- For Lenovo work or a new machine, start with `docs/LENOVO_HANDOFF.md` and `services/browser-runner/README.md`. The standalone collector is implemented; application ingestion, attended session provisioning/recovery and recurring operation remain separate work. Read the completed expiry evidence before repeating earlier experiments.
 - Preserve the imported plan and original ZIP. Record implementation choices in `docs/decisions/` and current test evidence in `docs/BUILD_STATUS.md`.
 - Keep one Go module for the API, worker, and local administration CLI. The frontend is React/TypeScript under `apps/web/`.
 - `compose.yaml` is for local development. Keep its published interface on loopback. Changes to deployment, networks, or supplier access require the agreed target and scope.

@@ -17,6 +17,11 @@ test-results/
 *.key
 auth-state*.json
 storage-state*.json
+# Supplier state belongs outside the checkout, even when encrypted.
+session*.enc
+session*.encrypted.json
+**/lenovo-private/
+**/private-lenovo-*/
 .DS_Store
 __pycache__/
 *.pyc

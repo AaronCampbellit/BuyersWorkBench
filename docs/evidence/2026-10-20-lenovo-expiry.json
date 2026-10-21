@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "kind": "sanitized_experiment_summary",
+  "date": "2026-10-20",
+  "scope": "One owner-selected order in independent VM browser contexts; source identifiers and cookie values omitted",
+  "execution": "Headed Chromium under Xvfb after the original portal-cookie deadline; actual clock unchanged",
+  "cases": [
+    {
+      "variant": "extended_portal_cookie_dates_without_sso",
+      "method": "Keep original token values, extend copied browser cookie retention by seven days, remove copied passport/business SSO cookies",
+      "outcome": "authenticated_order_not_available"
+    },
+    {
+      "variant": "baseline",
+      "method": "Restore the original scoped capsule after its original portal-cookie deadline",
+      "outcome": "authenticated_order_not_available"
+    },
+    {
+      "variant": "headed_sso",
+      "method": "Expire copied portal cookies and invoke the website's normal SSO function with the original copied SSO state",
+      "outcome": "authenticated_order_not_available",
+      "normalRenewalResponseObserved": false
+    },
+    {
+      "variant": "saved_renewed_state",
+      "method": "Restore a capsule already renewed normally in an earlier successful trial",
+      "outcome": "authenticated_same_order_read",
+      "sourceOrderIdentitiesMatched": true
+    }
+  ],
+  "interpretation": "Cookie retention edits did not preserve usable access in this follow-up. A normally renewed saved capsule remained usable. This does not establish the server timeout or unlimited SSO.",
+  "limitations": [
+    "One order and one bounded follow-up interval",
+    "Earlier forced-client-expiry renewal successes remain separate evidence",
+    "The failed headed SSO case does not identify the cause or establish the full business-SSO lifetime",
+    "No multi-day, fresh password/MFA, revocation or application-ingestion proof"
+  ],
+  "recurringCollectionEnabled": false,
+  "privateRawEvidenceInRepository": false
+}

@@ -1,6 +1,6 @@
 # Supplier collection and event strategy
 
-Updated October 17, 2026. This is the implementation strategy for the multi-method collection requirement. The source contains twelve application migrations; current release and deployment evidence is recorded in [BUILD_STATUS.md](BUILD_STATUS.md). The original reference package remains unchanged in the local archive, outside the public repository. Read this alongside [PROJECT.md](../PROJECT.md), the [connection-management decision](decisions/0009-connection-management.md), [open gates](intake/OPEN_GATES.md) and the [Lenovo discovery record](intake/LENOVO_DISCOVERY.md).
+Updated October 20, 2026. This is the implementation strategy for the multi-method collection requirement. The source contains twelve application migrations; current release and deployment evidence is recorded in [BUILD_STATUS.md](BUILD_STATUS.md). The original reference package remains unchanged in the local archive, outside the public repository. Read this alongside [PROJECT.md](../PROJECT.md), the [connection-management decision](decisions/0009-connection-management.md), [open gates](intake/OPEN_GATES.md) and the [Lenovo discovery record](intake/LENOVO_DISCOVERY.md).
 
 The Workbench should consume validated supplier observations through one pipeline regardless of how they arrive. Select the most reliable **permitted and verified** method for each connection. Replacing a browser extractor with an API adapter must preserve source identity, field meaning, provenance, and the application API used by the frontend.
 
@@ -9,7 +9,7 @@ The Workbench should consume validated supplier observations through one pipelin
 | Area | Current scope | Work still required |
 |---|---|---|
 | Connector seam | Versioned connector contract and fictional adapter feeding the existing normalized batch validator/publication path | Real transports, connection-specific authentication and approved source mappings |
-| Collection | Fictional source revisions; durable River jobs, leases, generation fences, staged validation and atomic publication | Lenovo or other live account collection; email, scraping, API and webhook transports |
+| Collection | Fictional source revisions and durable publication; separate owner-operated Lenovo CLI verifies bounded 90-date collection, pagination, current-session renewal and encrypted capture history | Trusted private runner/vault connection, canonical mapping and application ingestion; additional transports |
 | Connections and schedules | Multiple independently identified connections; connection-scoped orders, requirements, validation, runs and cadence; revision checks and pause fences. Only fictional feeds can collect or schedule. Private workspaces can save unconfigured method settings | Verified real account/configuration binding, supplier-approved rate policies, live authentication, backoff/jitter and circuit breaking |
 | Changes and notifications | Accepted observations/history, conditions, buyer workflow and typed status-change events; active assignee/default-buyer routing and per-member workspace preferences | Supplier-origin event ingestion and external email/Teams/webhook delivery |
 | Credentials | Local encrypted vault package and file-based administration CLI with connection UUID binding | Trusted runtime secret resolution, host/key custody setup, credential/session expiry and isolated browser execution |
@@ -67,7 +67,13 @@ Public documentation establishes that some Lenovo integration programs exist. It
 | [Data push API](https://scc.lenovo.com/opendocs/en/common/data-push/4_4_data_push_api.html) | Lenovo documents partner-provided receiving addresses and Basic/OAuth authentication choices for a push protocol | Buyer-order eligibility, enabled topics, event ordering/replay terms and a compatible sender-authentication contract |
 | [Logistics API Portal](https://gtms.lenovo.com/api-portal/) | Separate logistics partner integrations include Lenovo-to-partner HTTPS delivery and coordinated onboarding | Applicability to an ordinary purchasing portal or this account |
 
-These sources do not establish a general self-service purchasing webhook, and this review does not establish its absence. No account settings, private order pages, login flows or live endpoints were tested. The exact account URL/product/region and U01–U04/U09 in [OPEN_GATES.md](intake/OPEN_GATES.md) remain unresolved. The [discovery record](intake/LENOVO_DISCOVERY.md) records this limited public research separately from account findings.
+These sources do not establish a general self-service purchasing webhook, and this review does not establish its absence. Those October 17 checks were public-only. Subsequent owner-authorized October 20 account/source/runner findings identify this portal and verify a bounded coded scope; remaining U02–U04/U09 work is recorded in [OPEN_GATES.md](intake/OPEN_GATES.md). The [discovery record](intake/LENOVO_DISCOVERY.md) records this limited public research separately from account findings.
+
+## Standalone Lenovo implementation
+
+The owner selected a 90-calendar-date visible-account scope on October 20. The [standalone runner](../services/browser-runner/README.md) now executes fixed browser/JSON reads, checks complete pagination and source identity, retains line/component/shipment evidence and stores minimized encrypted captures outside the checkout. Normal headed SSO renewal and independent restart are verified for the current session. This is an operated CLI, not a registered Go transport or enabled application schedule.
+
+Its `lenovo_orders.v1` extraction document retains separate shipment dates and explicit unknowns. It is not a `domain.Batch`: canonical shipment/UOM/date mapping and private application publication remain pending. Natural/multi-day authentication, attended recovery and recurring cadence are separate gates. See [decision 0013](decisions/0013-lenovo-coded-collection.md).
 
 ## Common processing path
 

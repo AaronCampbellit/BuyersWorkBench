@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "customerId": "REPLACE_WITH_INDEPENDENTLY_CONFIRMED_CUSTOMER_ID",
+  "timezone": "America/Chicago",
+  "pageSize": 25,
+  "maxPages": 100,
+  "maxOrders": 1000,
+  "timeoutSeconds": 300
+}

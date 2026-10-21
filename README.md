@@ -4,7 +4,9 @@ BuyersWorkBench is a purchasing intelligence application and learning project bu
 
 The project explores how reliable ingestion, background processing, data isolation, and a useful purchasing interface fit together. Its central design principle is that collection methods should be interchangeable: an eventual API, webhook, browser, public-page, or email connector should feed the same normalized storage and event pipeline.
 
-**The runnable data source today is explicitly fictional.** It uses the real database, collection worker, validation, change detection, and notification path. Live Lenovo order collection is deferred. Selecting a real collection method creates an unconfigured connection; it does not authenticate to a supplier or collect data.
+**The application's runnable data source today is explicitly fictional.** It uses the real database, collection worker, validation, change detection, and notification path. A separate owner-operated Lenovo collector now performs bounded live reads into private encrypted files; application ingestion remains pending. Selecting a real collection method in the app still creates an unconfigured connection.
+
+To continue Lenovo development or set up another machine, start with the [Lenovo handoff](docs/LENOVO_HANDOFF.md) and [standalone runner instructions](services/browser-runner/README.md). They record setup, source/authentication findings, the completed expiry experiment and the next integration work. Private supplier sessions and data are not in Git.
 
 ## What is implemented
 
@@ -190,6 +192,7 @@ Useful documentation:
 
 - [Project overview](PROJECT.md) and [current build evidence](docs/BUILD_STATUS.md)
 - [Collection and event strategy](docs/COLLECTION_STRATEGY.md)
+- [Lenovo development handoff](docs/LENOVO_HANDOFF.md) and [standalone browser collector](services/browser-runner/README.md)
 - [HTTP API contract](docs/API.md)
 - [Architecture decisions](docs/decisions/)
 - [Operations](docs/OPERATIONS.md), [HTTPS deployment](docs/TUNNEL.md), and [backup/restore](docs/BACKUP.md)
@@ -198,7 +201,7 @@ Useful documentation:
 
 ## Next implementation steps
 
-The next live-source milestone is authorized Lenovo account discovery followed by a bounded one-order collection proof. It needs the exact portal, account scope, verified field mappings, permitted cadence, normal authentication/MFA, and an isolated execution environment. Public documentation research is recorded separately from account-level evidence.
+The standalone Lenovo collector verifies the approved 90-date scope, full pagination, precise order/line/shipment parsing, reviewed UPS tracking links, encrypted history and current-session renewal. The next application milestone is trusted private connection/vault binding, canonical shipment/date/unit mapping and bounded ingestion into the existing pipeline and Orders view. Natural expiry recovery, attended login/MFA, recurring cadence and carrier status enrichment remain open; see the [handoff checklist](docs/LENOVO_HANDOFF.md#next-implementation-work-in-order).
 
 Further work includes supported API/webhook/browser/scraping/email transports; runtime credential resolution and session renewal; source-specific retry/rate policies; authenticated inbound delivery and reconciliation; and external notification delivery. General inventory/pricing history and richer shipment models also need explicit normalized schemas. Automatic method selection should choose only among verified, permitted capabilities and record the actual method used.
 
