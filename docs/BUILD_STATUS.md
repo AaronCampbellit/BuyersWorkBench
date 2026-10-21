@@ -2,6 +2,12 @@
 
 Updated October 21, 2026. The latest application deployment remains the October 17 supplier-independent release with twelve application migrations. Separate owner-operated Lenovo collection/session checks below do not enable application ingestion or scheduling. Historical release sections describe their own earlier verification checkpoints.
 
+## October 21 overnight session check
+
+A fresh source-controlled VM CLI process restored the previous successful run's unchanged encrypted session after approximately 17.2 hours. Normal authentication recovery did not complete: the run exited 1 with `authentication_required`. No password/MFA or Windows source-browser action was used. Before/after file hashes confirmed the saved session and accepted pointer remained unchanged, so the latest successful observations are still dated October 20. No recurring renewal/keep-alive had been configured; this check does not prove what happened continuously overnight or identify the exact SSO timeout/cause. Normal attended recovery and another successful bounded pull are required before claiming current data. See the [sanitized result](evidence/2026-10-21-lenovo-overnight.json).
+
+An owner-local visualization uses the last accepted capture, with explicit capture/check timestamps, product-line status and order-linked shipment dates/UPS links. Selection, yearless-label preservation, nine link associations, runtime errors and layout were checked at 736px and 320px in an isolated browser. Private records, rendered content and screenshots remain outside Git. No application code, database or deployment changed for this visualization/check; Go/frontend/database suites were not repeated for these documentation-only findings.
+
 ## October 21 source handoff
 
 The standalone runner, locked dependencies, request/field policy, invented tests and decisions 0011–0014 are preserved in source. [LENOVO_HANDOFF.md](LENOVO_HANDOFF.md) records fresh-clone checks, the Linux/Docker boundary, private-directory transfer and provisioning requirements, source/session findings and ordered next work. Root README and AGENTS point to it. Initial attended session capture is still an operator workflow, not a productized login command. Private keys/captures/readable tracking exports and machine-specific experiment scripts remain outside Git; their important methods and findings are documented.

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "kind": "sanitized_experiment_summary",
+  "date": "2026-10-21",
+  "scope": "Fresh isolated VM collector process using the previous successful run's unchanged encrypted session; no source identifiers or cookie values included",
+  "previousSuccessfulCaptureUtc": "2026-10-20T20:40:21.614Z",
+  "checkFinishedUtc": "2026-10-21T13:50:41.053738Z",
+  "hoursSincePreviousCaptureAtStart": 17.1571,
+  "outcome": "authentication_required",
+  "exitCode": 1,
+  "normalRecoveryCompleted": false,
+  "savedSessionUnchanged": true,
+  "lastSuccessPointerUnchanged": true,
+  "passwordOrMfaEntered": false,
+  "sourceWindowsBrowserUsed": false,
+  "recurringRenewalConfigured": false,
+  "interpretation": "The saved VM state did not recover authenticated collection after the overnight gap. Keep the prior capture visibly dated and require normal attended recovery before claiming fresh source data.",
+  "limitations": [
+    "One bounded overnight attempt; no continuous authentication monitoring",
+    "No recurring keep-alive or renewal job had been configured",
+    "Does not establish the supplier's exact server timeout or the root cause of failed SSO recovery",
+    "Does not establish that the owner's independent Windows Chrome session expired"
+  ],
+  "privateRawEvidenceInRepository": false
+}
