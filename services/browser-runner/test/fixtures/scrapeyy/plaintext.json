@@ -1,0 +1,37 @@
+{
+  "format": "scrapeyy-session",
+  "version": 1,
+  "createdAt": "2026-10-22T00:00:00Z",
+  "source": {
+    "browser": "synthetic-fixture",
+    "locale": "en-US",
+    "timezone": "America/Chicago"
+  },
+  "origins": [
+    "https://account.lenovo.com"
+  ],
+  "cookies": [
+    {
+      "name": "fixture-only",
+      "value": "not-a-real-session",
+      "domain": "account.lenovo.com",
+      "path": "/",
+      "hostOnly": true,
+      "secure": true,
+      "httpOnly": true,
+      "sameSite": "lax",
+      "session": true,
+      "storeId": "0"
+    }
+  ],
+  "storage": [
+    {
+      "origin": "https://account.lenovo.com",
+      "localStorage": [],
+      "sessionStorage": []
+    }
+  ],
+  "warnings": [
+    "Synthetic test data only."
+  ]
+}

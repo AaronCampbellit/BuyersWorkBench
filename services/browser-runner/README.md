@@ -1,6 +1,6 @@
 # Lenovo browser collector
 
-This standalone Node 24/TypeScript CLI collects the authenticated Lenovo Pro US account's visible orders from the last **90 calendar dates, including today**, using the configured account timezone. It uses Playwright and the website's observed JSON responses. Collection and renewal need no agent, language model, MCP server, Chrome extension or per-run human navigation. The separate attended provisioning command uses an operator-selected local Chrome MCP connection; normal sign-in/MFA remains manual.
+This standalone Node 24/TypeScript CLI collects the authenticated Lenovo Pro US account's visible orders from the last **90 calendar dates, including today**, using the configured account timezone. It uses Playwright and the website's observed JSON responses. Collection and renewal need no agent, language model, MCP server, Chrome extension or per-run human navigation. Provisioning accepts a portable Scrapeyy export or an operator-selected local Chrome MCP connection; normal sign-in/MFA remains manual.
 
 It is separate from the deployed Go API/worker. It writes encrypted, minimized observations outside the checkout; it does not publish a Go `domain.Batch`, change database configuration or activate recurring collection. See [the collection strategy](../../docs/COLLECTION_STRATEGY.md) and [discovery evidence](../../docs/intake/LENOVO_DISCOVERY.md).
 
@@ -58,6 +58,74 @@ The private configuration binds an independently confirmed account, not an ident
 Unknown configuration fields are rejected. Page size is 1–100, pages 1–100, source orders 1–10,000, and timeout 30–600 seconds. There is an additional 660-second process bound. Limits never turn a truncated result into a successful snapshot. No supplier URL or secret is accepted through arguments/environment.
 
 The initial capsule may use the explicitly imported `lenovo-vm-probe:v1` context. Updated sessions use `buyersworkbench:lenovo:session:v1`; observations use a distinct authenticated context. Both use AES-256-GCM with fresh nonces and RSA-OAEP-SHA256 wrapped data keys. Session plaintext stays in the process and temporary browser filesystem. The existing Go connection vault is not yet wired to this CLI.
+
+## Import a portable Scrapeyy session
+
+The [Scrapeyy Borrow session feature](https://github.com/AaronCampbellit/Scrapeyy-public/pull/1)
+can export a session as PIN/passphrase-encrypted or explicitly selected plaintext
+JSON. Its portable file can be imported on multiple VMs/projects without a
+destination public key or browser-control tunnel. Use the feature build until
+it is merged/released; ordinary older Scrapeyy builds do not contain it.
+
+In the signed-in Lenovo order list/detail tab, open Scrapeyy → **Borrow session**.
+Include these exact origins for the current collector:
+
+```text
+https://account.lenovo.com
+https://openapi.lenovo.com
+https://www.lenovo.com
+https://passport.lenovo.com
+https://bpsso.lenovo.com
+```
+
+Keep the account order tab open. Related origins contribute cookies even without
+an open tab; local/session storage is available only from open permitted tabs
+in the same browser profile/container. This collector restores storage only from
+the account, passport and business-SSO origins; optional www/openapi storage in
+the export is ignored. Other origins are rejected. The extension reports omitted
+storage/partitioned cookies and does not guarantee every site's session can
+move to another device. No cookie expiration is extended.
+
+Transfer the downloaded file outside this checkout to the VM using your usual
+private file transfer. Keep the existing private configuration and RSA key (or
+provision those on a new VM as above), then run from this service directory:
+
+```sh
+chmod 600 /absolute/private/path/scrapeyy-export.json
+python3 import-scrapeyy.py \
+  --private-dir /absolute/path/outside-the-checkout/lenovo-private \
+  --input /absolute/private/path/scrapeyy-export.json
+python3 run-isolated.py \
+  --private-dir /absolute/path/outside-the-checkout/lenovo-private \
+  --mode verify-session
+```
+
+Encrypted input prompts for the PIN/passphrase privately in the terminal.
+Plaintext input needs no secret. For a controlled automation pipe, the optional
+`--passphrase-stdin` reads exact UTF-8 bytes; it does not strip a newline. Never
+put the secret in command arguments or an environment variable. The export
+secret is independent of the VM's RSA key. Short PINs remain susceptible to
+offline guessing; a longer passphrase is preferable.
+
+Import authenticates the encrypted envelope where applicable, checks Lenovo
+scope/attributes and writes only an RSA-encrypted `session-candidate.enc` using
+this VM's key. It holds the collector lock. An imported bundle's account is
+**not yet verified**: configuration supplies the expected identity, and the
+existing isolated `verify-session` command checks the live account, complete
+90-date scope and accepted history before promotion. Import itself makes no
+supplier request. Wrong PIN, malformed scope or unsafe input leaves the prior
+candidate, active session and accepted observations unchanged.
+
+Files require owner-only mode 0600; directories use 0700. Input and private
+directory must be outside the checkout, without symbolic ancestors. The
+reader bounds encoded files to 28 MiB (base64 overhead for Scrapeyy's 20 MiB
+plaintext limit); this collector's converted Lenovo state is limited to 2 MiB.
+Partitioned/first-party-isolated cookies are rejected if present. Host-only
+versus domain cookie scope and original expiration are retained. An unspecified
+SameSite attribute stays omitted so the destination browser applies its default.
+Delete transferred plaintext when no longer needed; imports do not remove the
+source file automatically. Live Windows export/Lenovo verification remains a
+separate acceptance check from the synthetic interoperability tests.
 
 ## Attended recovery from Windows Chrome
 

@@ -43,7 +43,7 @@ cd BuyersWorkBench
 make browser-check
 ```
 
-`make browser-check` installs the locked project-local dependencies and runs the type check plus 33 Node and four Python invented-fixture/host tests; it makes no supplier request. Playwright 1.64.1, MCP SDK 1.32.1, TypeScript 7.0.2 and `@types/node` 24.19.2 are locked in the service. The SDK handles attended MCP sessions, the GET event stream and heartbeat requests; ordinary supplier collection still needs no MCP server. Node 24's JSON reviver source token is required for lossless supplier IDs. Do not replace it with a round-tripping `JSON.parse` in the browser.
+`make browser-check` installs the locked project-local dependencies and runs the type check plus 38 Node and four Python invented-fixture/host tests; it makes no supplier request. Playwright 1.64.1, MCP SDK 1.32.1, TypeScript 7.0.2 and `@types/node` 24.19.2 are locked in the service. The SDK handles attended MCP sessions, the GET event stream and heartbeat requests; ordinary supplier collection still needs no MCP server. Node 24's JSON reviver source token is required for lossless supplier IDs. Do not replace it with a round-tripping `JSON.parse` in the browser.
 
 For the whole source checkout:
 
@@ -53,6 +53,19 @@ make test-integration
 ```
 
 The first command includes Go tests/vet and the locked web build. The second starts and cleans up its own disposable PostgreSQL container on a random loopback port; it does not use the deployed database. Neither command provisions a Lenovo session. Running the application itself additionally needs local setup, one-off migrations and owner provisioning as described in the root README.
+
+## Portable Scrapeyy recovery
+
+The owner can now supply a versioned Scrapeyy Borrow session export instead of
+connecting Windows Chrome through MCP. Encryption is optional and uses a
+portable PIN/passphrase, so the same export can serve multiple VMs/projects.
+Each destination re-encrypts the candidate with its own existing RSA key.
+Follow [the file-import instructions](../services/browser-runner/README.md#import-a-portable-scrapeyy-session),
+then run the unchanged isolated `verify-session` command. Imported account
+identity remains unverified until the full live account/scope/history check
+passes. Copying an expired session does not renew it. The extension feature is
+in [draft PR #1](https://github.com/AaronCampbellit/Scrapeyy-public/pull/1);
+use its feature build until merged/released. No recurring job is installed.
 
 ## What does not travel in Git
 
