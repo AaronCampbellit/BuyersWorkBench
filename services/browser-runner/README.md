@@ -64,8 +64,9 @@ The initial capsule may use the explicitly imported `lenovo-vm-probe:v1` context
 The [Scrapeyy Borrow session feature](https://github.com/AaronCampbellit/Scrapeyy-public/pull/1)
 can export a session as PIN/passphrase-encrypted or explicitly selected plaintext
 JSON. Its portable file can be imported on multiple VMs/projects without a
-destination public key or browser-control tunnel. Use the feature build until
-it is merged/released; ordinary older Scrapeyy builds do not contain it.
+destination public key or browser-control tunnel. The feature is merged into
+Scrapeyy's `main` branch. Install a build containing Borrow session; ordinary
+older Scrapeyy builds do not contain it.
 
 In the signed-in Lenovo order list/detail tab, open Scrapeyy → **Borrow session**.
 Include these exact origins for the current collector:

@@ -63,9 +63,9 @@ Each destination re-encrypts the candidate with its own existing RSA key.
 Follow [the file-import instructions](../services/browser-runner/README.md#import-a-portable-scrapeyy-session),
 then run the unchanged isolated `verify-session` command. Imported account
 identity remains unverified until the full live account/scope/history check
-passes. Copying an expired session does not renew it. The extension feature is
-in [draft PR #1](https://github.com/AaronCampbellit/Scrapeyy-public/pull/1);
-use its feature build until merged/released. No recurring job is installed.
+passes. Copying an expired session does not renew it. The extension feature was
+[merged into Scrapeyy's main branch](https://github.com/AaronCampbellit/Scrapeyy-public/pull/1);
+install a build containing Borrow session. No recurring job is installed.
 
 ## What does not travel in Git
 

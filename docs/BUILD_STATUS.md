@@ -22,7 +22,7 @@ to verify HttpOnly, host-only scope and session lifetime without supplier
 requests. Run it separately with `node test/scrapeyy-browser-smoke.mjs` from the
 service directory when a local Playwright Chromium installation is available.
 
-The companion [Scrapeyy draft PR](https://github.com/AaronCampbellit/Scrapeyy-public/pull/1)
+The companion [Scrapeyy feature](https://github.com/AaronCampbellit/Scrapeyy-public/pull/1)
 has Chrome/Firefox feature ZIPs, 167 passing tests and a real installed Chromium
 capture/download/decryption smoke check. That check pregranted fixture permissions
 in a temporary manifest; native permission prompts and live Windows/Lenovo export
@@ -30,6 +30,11 @@ and verification remain pending. No new live session was imported or renewed.
 No Go/frontend/database/deployment or recurring schedule changed; those suites
 were not repeated for this standalone import feature. No new dependency was
 added to BuyersWorkBench.
+
+Both companion pull requests were merged into their repositories' `main`
+branches on October 22. Their local and remote feature branches were removed.
+This source merge does not publish an extension-store release or complete the
+pending live acceptance checks above.
 
 ## October 21 proactive renewal and attended capture
 
