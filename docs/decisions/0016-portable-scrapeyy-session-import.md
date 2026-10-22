@@ -1,7 +1,7 @@
 # Portable Scrapeyy session import
 
 Date: October 22, 2026. Status: implemented for the standalone collector;
-live Windows/Lenovo acceptance pending.
+real owner-provided Firefox export authenticated on the VM. Renewal remains pending.
 
 The owner requested a general Scrapeyy Borrow session feature with optional
 PIN/passphrase encryption, reusable across VMs/projects. Its v1 export is
@@ -30,6 +30,18 @@ wrong secret and tampering, KDF bounds, origin/cookie/storage rejection, origina
 expiry, private files and preservation of active/candidate/history on failure.
 The source browser is never logged out or mutated by this importer. Copying
 authentication cannot renew it; natural-expiry success remains unverified.
+
+The first real Firefox export represented unpartitioned cookies with
+`partitionKey: null`. The receiver now accepts this representation; non-null
+partition objects are still unsupported. The exporter normalizes null to an
+omitted field for new files. That export contained only the storefront origin,
+including applicable parent-domain portal cookies. A disposable VM probe with
+empty account storage authenticated, so the normal importer now supports this
+case explicitly. Account storage is left empty, never copied from another
+origin; full isolated identity/scope/history verification remains mandatory.
+Import metadata reports missing account storage and incomplete renewal cookies.
+Passport and business-SSO state was absent, so this is session portability
+evidence, not normal renewal or overnight persistence evidence.
 
 Application Go/vault/database integration, deployment and scheduling remain
 outside this change. See the [operator instructions](../../services/browser-runner/README.md#import-a-portable-scrapeyy-session).

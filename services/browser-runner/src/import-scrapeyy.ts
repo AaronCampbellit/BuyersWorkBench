@@ -6,6 +6,7 @@ import { readPrivate, privateDirectory } from './private-files.ts';
 import { EncryptedFiles, SESSION_CONTEXT } from './crypto.ts';
 import { parseConfig } from './config.ts';
 import { decodeScrapeyy, scrapeyyLenovoSession, SCRAPEYY_MAX_BYTES } from './scrapeyy-import.ts';
+import { sessionClocks } from './renewal.ts';
 import { Failure, requireThat } from './errors.ts';
 
 let bytes: Buffer | undefined, passphrase: Buffer | undefined;
@@ -37,6 +38,8 @@ try {
   encrypted.write(join(root, 'state/session-candidate.enc'), session, SESSION_CONTEXT);
   console.log(JSON.stringify({ outcome: 'candidate_imported', capturedAt: session.capturedAt,
     cookieCount: session.storageState.cookies.length, storageOriginCount: session.storageState.origins.length,
+    accountStorageCaptured: session.storageState.origins.some(s => s.origin === 'https://account.lenovo.com'),
+    renewalCookiesComplete: sessionClocks(session).complete,
     activeSessionReplaced: false, accountVerified: false,
     next: 'Run run-isolated.py --mode verify-session with this private directory.' }));
 } catch (error) {

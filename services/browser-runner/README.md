@@ -87,6 +87,14 @@ the export is ignored. Other origins are rejected. The extension reports omitted
 storage/partitioned cookies and does not guarantee every site's session can
 move to another device. No cookie expiration is extended.
 
+A storefront-only (`www.lenovo.com`) export can also be staged: parent-domain
+portal cookies may already grant account access. Missing account storage starts
+empty, and storefront storage is never relabeled or copied to the account origin.
+The importer reports `accountStorageCaptured` and `renewalCookiesComplete` so
+successful short-term access is not confused with complete renewal material.
+The real Firefox storefront export tested on October 22 authenticated the
+isolated collector; a fuller export is still needed to test Passport renewal.
+
 Transfer the downloaded file outside this checkout to the VM using your usual
 private file transfer. Keep the existing private configuration and RSA key (or
 provision those on a new VM as above), then run from this service directory:
@@ -121,12 +129,15 @@ Files require owner-only mode 0600; directories use 0700. Input and private
 directory must be outside the checkout, without symbolic ancestors. The
 reader bounds encoded files to 28 MiB (base64 overhead for Scrapeyy's 20 MiB
 plaintext limit); this collector's converted Lenovo state is limited to 2 MiB.
-Partitioned/first-party-isolated cookies are rejected if present. Host-only
+Actual partitioned/first-party-isolated cookies are rejected. Firefox's
+`partitionKey: null` represents an ordinary unpartitioned cookie and is accepted.
+Host-only
 versus domain cookie scope and original expiration are retained. An unspecified
 SameSite attribute stays omitted so the destination browser applies its default.
 Delete transferred plaintext when no longer needed; imports do not remove the
-source file automatically. Live Windows export/Lenovo verification remains a
-separate acceptance check from the synthetic interoperability tests.
+source file automatically. Real Firefox-export/VM account and collection
+verification passed on October 22. Long-term renewal and other browser/site
+combinations remain separate from that successful portability check.
 
 ## Attended recovery from Windows Chrome
 

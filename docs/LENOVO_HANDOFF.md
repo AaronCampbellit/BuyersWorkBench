@@ -1,6 +1,6 @@
 # Continue Lenovo collection on another machine
 
-Updated October 21, 2026. This is the starting point for the next developer or agent. Read [PROJECT.md](../PROJECT.md), [BUILD_STATUS.md](BUILD_STATUS.md), the [runner README](../services/browser-runner/README.md) and decisions [0011](decisions/0011-lenovo-session-portability-probe.md), [0012](decisions/0012-lenovo-session-renewal-experiments.md), [0013](decisions/0013-lenovo-coded-collection.md), [0014](decisions/0014-lenovo-linked-tracking.md) and [0015](decisions/0015-lenovo-proactive-renewal-and-provisioning.md).
+Updated October 22, 2026. This is the starting point for the next developer or agent. Read [PROJECT.md](../PROJECT.md), [BUILD_STATUS.md](BUILD_STATUS.md), the [runner README](../services/browser-runner/README.md) and decisions [0011](decisions/0011-lenovo-session-portability-probe.md), [0012](decisions/0012-lenovo-session-renewal-experiments.md), [0013](decisions/0013-lenovo-coded-collection.md), [0014](decisions/0014-lenovo-linked-tracking.md) and [0015](decisions/0015-lenovo-proactive-renewal-and-provisioning.md).
 
 ## Where work stopped
 
@@ -25,7 +25,7 @@ The Go application still runs fictional connectors. The Lenovo CLI is not wired 
 | Expiry limits | The real-deadline follow-up completed October 20; it is no longer queued or pending. It did not establish the server timeout, indefinite SSO, multi-day reliability, revocation recovery or an attended login/MFA path. Successful earlier forced-expiry trials do not close those gates. See the [sanitized evidence summary](evidence/2026-10-20-lenovo-expiry.json). |
 | Overnight check | On October 21, a fresh CLI process reused the unchanged saved VM session after about 17.2 hours and returned `authentication_required`; normal recovery did not complete. The saved session and last-success pointer were unchanged. No recurring renewal had been configured and no password/MFA or Windows source browser was used. Latest accepted observations remained from October 20. See the [overnight evidence](evidence/2026-10-21-lenovo-overnight.json); require attended recovery before claiming fresh data. |
 | Renewal trigger and diagnosis | The failed overnight run used reactive recovery. Tracing reached the normal SSO function twice; reviewed requests returned HTTP 200, but the SSO response contained `USS-0120` and no new portal authentication cookies appeared. The vendor code meaning was not independently verified. No business-SSO-host request appeared in that path. Version 0.3.0 adds explicit and ten-minute before-expiry renewal. Test fresh state and verify both the main sign-in and portal clocks plus a post-deadline read before claiming a repeating timer prevents expiry. |
-| Attended provisioning | The versioned host command encrypts scoped state on the source device and stages a candidate under the collector lock. VM `verify-session` promotes it only after full collection validates. Fixture checks cover ciphertext transfer and wrong-account preservation. Fresh live capture and natural-expiry testing remain pending; use the latest BUILD_STATUS evidence. |
+| Attended provisioning | The versioned host command encrypts scoped state on the source device and stages a candidate under the collector lock. VM `verify-session` promotes it only after full collection validates. Fixture checks cover ciphertext transfer and wrong-account preservation. A real Firefox Scrapeyy export passed VM verification and fresh-process reuse on October 22. The file lacked Passport/business-SSO state; natural-expiry testing remains pending. |
 | Product flags | Do not infer physical delivery eligibility from the current `physicalProduct` boolean alone. Observed raw source values were 0 for computer/dock lines and 1 for support components, so the field's enum semantics require verification before canonical integration. The visualization uses source line relation/status and explicit shipment facts instead. |
 | UPS | Both observed legacy HTTP link formats contain the shipment's `trackNums`; validate the exact match and emit a minimal HTTPS link. A cookie-empty VM browser reached UPS and once received matching details through its normal read-only `Track/GetStatus` POST. Other bounded attempts were inconsistent. Keep UPS status/ETA enrichment separate from Lenovo coverage and buyer receipt. |
 
@@ -43,7 +43,7 @@ cd BuyersWorkBench
 make browser-check
 ```
 
-`make browser-check` installs the locked project-local dependencies and runs the type check plus 38 Node and four Python invented-fixture/host tests; it makes no supplier request. Playwright 1.64.1, MCP SDK 1.32.1, TypeScript 7.0.2 and `@types/node` 24.19.2 are locked in the service. The SDK handles attended MCP sessions, the GET event stream and heartbeat requests; ordinary supplier collection still needs no MCP server. Node 24's JSON reviver source token is required for lossless supplier IDs. Do not replace it with a round-tripping `JSON.parse` in the browser.
+`make browser-check` installs the locked project-local dependencies and runs the type check plus 39 Node and four Python invented-fixture/host tests; it makes no supplier request. Playwright 1.64.1, MCP SDK 1.32.1, TypeScript 7.0.2 and `@types/node` 24.19.2 are locked in the service. The SDK handles attended MCP sessions, the GET event stream and heartbeat requests; ordinary supplier collection still needs no MCP server. Node 24's JSON reviver source token is required for lossless supplier IDs. Do not replace it with a round-tripping `JSON.parse` in the browser.
 
 For the whole source checkout:
 
@@ -66,6 +66,14 @@ identity remains unverified until the full live account/scope/history check
 passes. Copying an expired session does not renew it. The extension feature was
 [merged into Scrapeyy's main branch](https://github.com/AaronCampbellit/Scrapeyy-public/pull/1);
 install a build containing Borrow session. No recurring job is installed.
+
+A real Firefox storefront-only export passed isolated account/90-date/history
+verification on October 22, and a fresh process reused the saved encrypted state
+successfully. Firefox's null partition marker is accepted as unpartitioned.
+When no account storage was captured, that origin starts empty; storefront
+storage is never transplanted. The tested file omitted Passport/business-SSO
+cookies, so renewal and overnight persistence are still unverified. Include the
+related login origins on the next export before starting the finite expiry test.
 
 ## What does not travel in Git
 
@@ -107,7 +115,7 @@ No recurring schedule is defined. Review and agree permitted cadence, operationa
 
 ## Next implementation work, in order
 
-1. Complete a fresh live attended capture/VM verification, then the versioned finite before-expiry/post-deadline experiment. Verify both authentication clocks; a portal-only refresh is insufficient. Scoped encrypted provisioning is implemented, but normal sign-in/MFA remains manual. Resolve the unexplained startup schema failures and repeat natural expiry, multi-day and revoked-session tests on the target host.
+1. Capture a fuller session including the account and related Passport/business-SSO origins, then run the versioned finite before-expiry/post-deadline experiment. The October 22 storefront export already passed live VM verification and reuse, but lacked complete renewal material. Verify both authentication clocks; a portal-only refresh is insufficient. Scoped encrypted provisioning is implemented, but normal sign-in/MFA remains manual. Resolve the unexplained startup schema failures and repeat natural expiry, multi-day and revoked-session tests on the target host.
 2. Bind the runner to a trusted private workspace/connection and Go vault reference. An incoming source record or presentation/reviewer upload must not select credentials or a live account.
 3. Extend the canonical model where required for shipment schedules and tracking, source units, explicit date kinds/provenance and stable lifecycle identities. Do not flatten the extraction into the current line model by discarding facts.
 4. Publish a bounded real private run through the existing validation/staging/fenced transaction and prove failure preservation. Keep the independently resettable fictional workspace and source fixtures separate.

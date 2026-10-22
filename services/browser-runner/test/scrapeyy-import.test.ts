@@ -46,6 +46,7 @@ async function envelope(value: unknown) {
 }
 test('portable WebCrypto and plaintext imports preserve cookie scope, original expiry and storage', async () => {
   const original = payload();
+  original.cookies = original.cookies.map(cookie => ({ ...cookie, partitionKey: null })); // Firefox: unpartitioned.
   original.origins.push('https://www.lenovo.com');
   original.storage.push({ origin: 'https://www.lenovo.com', localStorage: [{ name: 'unused', value: 'FICTIONAL-UNUSED' }], sessionStorage: [] });
   const encrypted = await envelope(original);
@@ -71,6 +72,19 @@ test('wrong PIN, tampering and unbounded encryption settings fail without privat
   reject({ ...encrypted, cipher: { ...encrypted.cipher, tagLength: 32 } });
   reject({ ...encrypted, ciphertext: 'A' + encrypted.ciphertext.slice(1, -4) + 'AAAA' });
   reject({ ...encrypted, version: 2 });
+});
+test('storefront exports start missing account storage empty and retain only applicable cookies', () => {
+  const original = payload();
+  original.origins = ['https://www.lenovo.com'];
+  original.cookies = [original.cookies[0]!].map(cookie => ({ ...cookie, partitionKey: null }));
+  original.storage = [{ origin: 'https://www.lenovo.com', localStorage: [{ name: 'storefront', value: 'FICTIONAL-STOREFRONT' }], sessionStorage: [] }];
+  const session = scrapeyyLenovoSession(original, 'PINNED-CUSTOMER');
+  assert.equal(session.storageState.cookies[0]!.domain, '.lenovo.com');
+  assert.deepEqual(session.storageState.origins, []);
+  assert.deepEqual(session.sessionStorage, { origin: 'https://account.lenovo.com', values: {} });
+  assert.ok(!JSON.stringify(session).includes('FICTIONAL-STOREFRONT'));
+  original.cookies[0]!.hostOnly = true; original.cookies[0]!.domain = 'account.lenovo.com';
+  assert.throws(() => scrapeyyLenovoSession(original, 'PINNED-CUSTOMER'), { message: 'state_invalid' });
 });
 test('Lenovo staging rejects unrelated origins, cookie widening, partitioning and malformed state', () => {
   const corrupt = (edit: (value: any) => void) => { const value = payload(); edit(value); assert.throws(() => scrapeyyLenovoSession(value, 'PINNED-CUSTOMER'), { message: 'state_invalid' }); };
@@ -111,6 +125,15 @@ test('file import re-encrypts a candidate locally, rejects unsafe files and pres
       const local = new EncryptedFiles(join(root, 'credentials/key.pem')).read(path, SESSION_CONTEXT) as Session;
       assert.equal(local.storageState.cookies[0]!.value, 'FICTIONAL-SESSION-COOKIE');
     }
+    const storefront = payload();
+    storefront.origins = ['https://www.lenovo.com']; storefront.cookies = [storefront.cookies[0]!];
+    storefront.storage = [{ origin: 'https://www.lenovo.com', localStorage: [], sessionStorage: [] }];
+    writeFileSync(input, JSON.stringify(storefront), { mode: 0o600 });
+    const cookieOnly = run();
+    assert.equal(cookieOnly.status, 0, cookieOnly.stdout + cookieOnly.stderr);
+    assert.equal(JSON.parse(cookieOnly.stdout).accountStorageCaptured, false);
+    assert.equal(JSON.parse(cookieOnly.stdout).renewalCookiesComplete, false);
+    writeFileSync(input, JSON.stringify(await envelope(payload())), { mode: 0o600 });
     const previous = readFileSync(join(root, 'state/session-candidate.enc'));
     assert.equal(run(input, 'WRONG PIN').status, 1);
     assert.equal(JSON.parse(run().stdout).code, 'passphrase_required');

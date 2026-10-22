@@ -50,7 +50,8 @@ export function scrapeyyLenovoSession(value: unknown, customerId: string, now = 
     const capturedAt = Date.parse(bundle.createdAt);
     requireThat(Number.isFinite(capturedAt) && capturedAt <= now + 5 * 60_000, 'state_invalid');
     const origins = array(bundle.origins, 10);
-    requireThat(origins.includes(account) && origins.every(o => typeof o === 'string' && cookieOrigins.has(o)), 'state_invalid');
+    requireThat((origins.includes(account) || origins.includes('https://www.lenovo.com')) &&
+      origins.every(o => typeof o === 'string' && cookieOrigins.has(o)), 'state_invalid');
     const cookies = array(bundle.cookies, 300).map(value => {
       const c = object(value);
       requireThat(typeof c.domain === 'string' && typeof c.hostOnly === 'boolean', 'state_invalid');
@@ -58,7 +59,8 @@ export function scrapeyyLenovoSession(value: unknown, customerId: string, now = 
       requireThat(host === 'lenovo.com' || host.endsWith('.lenovo.com'), 'state_invalid');
       requireThat(/^[a-z0-9.-]+$/.test(host) && !host.startsWith('.') && !host.endsWith('.'), 'state_invalid');
       requireThat(origins.some(o => { const h = new URL(String(o)).hostname; return h === host || (!c.hostOnly && h.endsWith('.' + host)); }), 'state_invalid');
-      requireThat(c.partitionKey === undefined && (c.firstPartyDomain === undefined || c.firstPartyDomain === ''), 'state_invalid');
+      requireThat((c.partitionKey === undefined || c.partitionKey === null) &&
+        (c.firstPartyDomain === undefined || c.firstPartyDomain === ''), 'state_invalid');
       requireThat(typeof c.name === 'string' && c.name.length <= 500 && typeof c.value === 'string' && c.value.length <= 100_000 &&
         typeof c.path === 'string' && c.path.startsWith('/') && c.path.length <= 2000 &&
         typeof c.secure === 'boolean' && typeof c.httpOnly === 'boolean' && typeof c.session === 'boolean', 'state_invalid');
@@ -88,13 +90,15 @@ export function scrapeyyLenovoSession(value: unknown, customerId: string, now = 
     });
     requireThat(new Set(storage.map(s => s.origin)).size === storage.length, 'state_invalid');
     const main = storage.find(s => s.origin === account);
-    requireThat(main, 'state_invalid');
+    // Storefront exports can carry parent-domain portal cookies even when no
+    // account tab was captured. Start missing account storage empty; the full
+    // isolated verifier must still establish the configured account and scope.
     requireThat(typeof source.locale === 'string' && source.locale.length > 0 && source.locale.length < 40 &&
       typeof source.timezone === 'string' && source.timezone.length < 100, 'state_invalid');
     new Intl.Locale(source.locale); new Intl.DateTimeFormat('en-US', { timeZone: source.timezone });
     const session = validateSession({ schema: 1, capturedAt: new Date(capturedAt).toISOString(),
       storageState: { cookies, origins: storage.filter(s => storageOrigins.has(s.origin)).map(({ origin, localStorage }) => ({ origin, localStorage })) },
-      sessionStorage: { origin: account, values: Object.fromEntries(main.sessionStorage.map(p => [p.name, p.value])) },
+      sessionStorage: { origin: account, values: Object.fromEntries((main?.sessionStorage ?? []).map(p => [p.name, p.value])) },
       locale: source.locale, timezone: source.timezone, baseline: { customerId } }, customerId);
     requireThat(Buffer.byteLength(JSON.stringify(session)) <= 2 * 1024 * 1024, 'state_invalid');
     return session;

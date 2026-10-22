@@ -2,6 +2,38 @@
 
 Updated October 22, 2026. The latest application deployment remains the October 17 supplier-independent release with twelve application migrations. Separate owner-operated Lenovo collection/session checks below do not enable application ingestion or scheduling. Historical release sections describe their own earlier verification checkpoints.
 
+## October 22 real Firefox export and VM verification
+
+An owner-provided Scrapeyy Firefox export was imported and used successfully by
+the isolated Lenovo collector. The first attempt exposed Firefox's
+`partitionKey: null` representation for ordinary unpartitioned cookies, which
+the original receiver rejected. The receiver now accepts null; the companion
+extension normalizes it to omission. Real partition objects remain excluded or
+rejected. Regression checks cover both representations and partition rejection.
+
+The export included only `www.lenovo.com`, with applicable parent-domain portal
+cookies and storefront storage. A disposable probe proved these cookies worked
+with empty account storage. The normal importer now supports this case without
+copying storefront storage to the account origin. It reports whether account
+storage and complete renewal cookies were captured. The full existing pinned
+account, 90-date completeness and accepted-history verification then passed and
+promoted the candidate. A separate fresh ordinary collector process restored the
+encrypted active session, completed the same scope and reported no further
+changes. Actual records, timestamps, counts and source material remain outside
+Git in owner-private evidence.
+
+This verifies real Firefox-export portability into VM Chromium and saved-state
+reuse. Passport/business-SSO cookies were absent and no renewal was attempted.
+The finite expiry planner refused to start with `unknown_authentication_deadline`;
+natural-expiry/overnight renewal remains unverified. A fuller export from the
+account order tab with the related login origins is the next prerequisite.
+
+Final service typecheck, 39 Node tests and four host tests passed. Extension
+typecheck and nine focused tests passed; Chrome/Firefox/source ZIPs were rebuilt
+on its current main. No new dependencies, Go/application/database/deployment
+changes or recurring schedule were introduced. Fixes and findings were committed
+directly to main under the owner's preference to avoid extra branches.
+
 ## October 22 portable Scrapeyy session import
 
 The standalone runner now accepts Scrapeyy's versioned optional-PIN/passphrase
