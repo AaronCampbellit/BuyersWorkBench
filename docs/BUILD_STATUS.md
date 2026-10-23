@@ -2,6 +2,26 @@
 
 Updated October 22, 2026. The latest application deployment remains the October 17 supplier-independent release with twelve application migrations. Separate owner-operated Lenovo collection/session checks below do not enable application ingestion or scheduling. Historical release sections describe their own earlier verification checkpoints.
 
+## Current next steps
+
+Handoff reviewed October 23, 2026 against the release evidence,
+[Lenovo handoff](LENOVO_HANDOFF.md) and [open gates](intake/OPEN_GATES.md).
+This documentation update does not change the deployed application.
+
+| Remaining work | Dependency |
+|---|---|
+| Scheduled and off-host encrypted backups | Choose a backup destination, cadence and independent key-recovery procedure; local backup and isolated restore are already implemented and verified |
+| Application Lenovo ingestion and scheduling | The standalone collector and real Firefox-export portability have evidence; Go ingestion, canonical field mapping, approved recurring scope and dependable natural-expiry recovery remain pending |
+| Production browser-runner integration | Bounded standalone sandbox/egress checks are recorded separately; application integration and full operational acceptance remain pending |
+| Actual reviewer access | Explicit invitees/expiry and owner-approved Access-policy changes; reviewer provisioning and isolation already have synthetic acceptance evidence |
+| External notification delivery | Select a delivery transport and recipient scope; in-app events, routing and preferences are already implemented |
+
+For a fresh installation, use the [README](../README.md). For the existing
+deployment, use [operations](OPERATIONS.md) and [backup/restore](BACKUP.md).
+The historical M0 handoff below records what was pending at that checkpoint,
+not the current implementation backlog. Current validation limits are recorded
+in the dated evidence sections and [acceptance matrix](ACCEPTANCE.md).
+
 ## October 22 real Firefox export and VM verification
 
 An owner-provided Scrapeyy Firefox export was imported and used successfully by
@@ -429,7 +449,7 @@ Evidence is stored outside the repository:
 
 Chromium was tested; Firefox, WebKit, and other viewport sizes were not. After verification, the temporary QA containers, volume, credentials, and browser scripts were removed. The development stack remains running, with the external screenshots retained as evidence. Its owner account has since been provisioned and verified; the temporary owner password file was removed.
 
-## Remaining work and handoff
+## Historical M0 remaining work and handoff
 
 Start with `make dev`, then provision the owner with `make owner` in an interactive terminal. Startup, safe bootstrap automation, worker verification, stopping, and persistence behavior are documented in the [README](../README.md).
 
